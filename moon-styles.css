@@ -1,0 +1,743 @@
+/* ==================== 月相可视化专用样式 ==================== */
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #ffffff;
+    min-height: 100vh;
+}
+
+/* ==================== 超紧凑顶部控制栏 ==================== */
+.compact-header {
+    background: rgba(30, 41, 59, 0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 8px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.compact-controls {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.title-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.title-section .moon-icon {
+    font-size: 20px;
+}
+
+.title-section h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #7cc0ff;
+}
+
+.control-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.date-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.compact-select {
+    background: rgba(51, 65, 85, 0.8);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: #ffffff;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.compact-select:hover {
+    background: rgba(71, 85, 105, 0.8);
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.compact-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.view-controls, .chart-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.mini-btn {
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: none;
+    background: rgba(51, 65, 85, 0.8);
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mini-btn:hover {
+    background: rgba(71, 85, 105, 0.8);
+    color: #cbd5e1;
+}
+
+.mini-btn.active {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+/* ==================== 主内容区 ==================== */
+.main-content {
+    padding: 8px 4px;
+    flex: 1;
+    height: calc(100vh - 40px);
+    overflow: hidden;
+}
+
+.content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.view-container {
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    margin-bottom: 12px;
+    height: calc(100vh - 80px);
+    overflow: hidden;
+}
+
+.view-container.hidden {
+    display: none;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #93c5fd;
+}
+
+/* ==================== 网格视图 ==================== */
+.moon-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 16px;
+}
+
+.moon-card {
+    background: rgba(51, 65, 85, 0.5);
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    position: relative;
+}
+
+.moon-card:hover {
+    background: rgba(71, 85, 105, 0.6);
+    transform: translateY(-4px) scale(1.02);
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.moon-day {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.moon-phase-svg {
+    margin: 8px 0;
+}
+
+.moon-phase-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #60a5fa;
+    margin-bottom: 4px;
+}
+
+.moon-illumination {
+    font-size: 11px;
+    color: #64748b;
+}
+
+/* ==================== 时间线视图 ==================== */
+.timeline-container {
+    position: relative;
+    padding: 40px 20px;
+}
+
+.timeline-axis {
+    position: absolute;
+    top: 100px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #3b82f6, #a855f7, #3b82f6);
+    border-radius: 1px;
+}
+
+.timeline-items {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+    z-index: 1;
+}
+
+.timeline-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 80px;
+}
+
+.timeline-date {
+    font-size: 14px;
+    font-weight: 600;
+    color: #60a5fa;
+    margin-bottom: 8px;
+}
+
+.timeline-phase-name {
+    font-size: 12px;
+    color: #93c5fd;
+    margin-bottom: 4px;
+}
+
+.timeline-illumination {
+    font-size: 11px;
+    color: #64748b;
+}
+
+/* ==================== 参数介绍区域 ==================== */
+.parameter-info {
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    transition: all 0.3s ease;
+}
+
+.parameter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.parameter-header h3 {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.icon-selector {
+    display: flex;
+    gap: 8px;
+}
+
+.icon-btn {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+}
+
+.icon-btn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
+}
+
+.icon-btn.active {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.parameter-content {
+    color: #e2e8f0;
+}
+
+.parameter-item h4 {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+}
+
+.parameter-item p {
+    color: #94a3b8;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0 0 16px 0;
+}
+
+.parameter-item ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.parameter-item li {
+    color: #cbd5e1;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 6px 0;
+    padding-left: 16px;
+    position: relative;
+}
+
+.parameter-item li:before {
+    content: "•";
+    color: #3b82f6;
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+/* ==================== 悬浮信息面板 ==================== */
+.hover-panel {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    max-width: 320px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+}
+
+.hover-panel:not(.hidden) {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.hover-content {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.hover-moon {
+    flex-shrink: 0;
+}
+
+.hover-info h3 {
+    margin: 0 0 16px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #60a5fa;
+}
+
+.hover-details p {
+    margin: 8px 0;
+    font-size: 14px;
+    color: #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+}
+
+.detail-label {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+/* ==================== 动画效果 ==================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.moon-card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* ==================== 响应式设计 ==================== */
+@media (max-width: 1024px) {
+    .moon-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+    }
+
+    .parameter-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+
+    .icon-selector {
+        flex-wrap: wrap;
+    }
+
+    .timeline-items {
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .date-controls {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .moon-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+
+    .view-container {
+        padding: 20px;
+    }
+
+    .parameter-info {
+        padding: 20px;
+    }
+
+    .icon-btn {
+        min-width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+
+    .hover-panel {
+        bottom: 16px;
+        right: 16px;
+        left: 16px;
+        max-width: none;
+    }
+
+    .hover-content {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .moon-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .moon-card {
+        padding: 12px;
+    }
+
+    .logo h1 {
+        font-size: 22px;
+    }
+
+    .view-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+}
+/* ==================== 新布局样式 ==================== */
+.main-content {
+    padding: 20px;
+    flex: 1;
+}
+
+.content-layout {
+    width: 100%;
+    display: flex;
+    gap: 16px;
+    height: calc(100vh - 40px);
+    padding: 0 8px;
+}
+
+.left-panel {
+    flex: 1.5;
+    display: flex;
+    flex-direction: column;
+}
+
+.right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.charts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.charts-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #93c5fd;
+}
+
+.chart-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.parameter-select, .chart-type-select {
+    background: rgba(51, 65, 85, 0.8);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    padding: 6px 10px;
+    color: #ffffff;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    outline: none;
+    min-width: 110px;
+}
+
+.parameter-select:hover, .chart-type-select:hover {
+    background: rgba(71, 85, 105, 0.8);
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.parameter-select:focus, .chart-type-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.main-chart-container {
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 280px;
+    margin-bottom: 8px;
+    margin-top: 0;
+}
+
+.chart-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #60a5fa;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.main-chart {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    position: relative;
+}
+
+.main-chart svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* 更新网格样式以适应新布局 */
+.moon-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    height: calc(100vh - 150px);
+    overflow: hidden;
+    align-content: start;
+}
+
+.moon-card {
+    background: rgba(51, 65, 85, 0.5);
+    border-radius: 8px;
+    padding: 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    height: fit-content;
+}
+
+.moon-card:hover {
+    background: rgba(71, 85, 105, 0.6);
+    transform: translateY(-1px) scale(1.01);
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.moon-day {
+    font-size: 9px;
+    color: #94a3b8;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.moon-phase-svg {
+    margin: 4px 0;
+}
+
+.moon-phase-name {
+    font-size: 10px;
+    font-weight: 600;
+    color: #60a5fa;
+    margin-bottom: 2px;
+}
+
+.moon-illumination {
+    font-size: 8px;
+    color: #64748b;
+}
+
+/* 更新参数介绍样式 */
+.parameter-info {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 16px;
+}
+
+.parameter-header h3 {
+    font-size: 14px;
+}
+
+.icon-btn {
+    min-width: 32px;
+    height: 32px;
+    font-size: 12px;
+    padding: 4px 8px;
+}
+
+.parameter-item h4 {
+    font-size: 14px;
+}
+
+.parameter-item p {
+    font-size: 12px;
+}
+
+.parameter-item li {
+    font-size: 11px;
+    padding: 4px 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .content-layout {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .moon-grid {
+        grid-template-columns: repeat(5, 1fr);
+        max-height: 400px;
+    }
+    
+    .parameter-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .compact-controls {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+    
+    .control-section {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+    
+    .date-controls {
+        justify-content: center;
+    }
+    
+    .view-controls {
+        justify-content: center;
+    }
+    
+    .moon-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+    
+    .icon-selector {
+        justify-content: center;
+    }
+}

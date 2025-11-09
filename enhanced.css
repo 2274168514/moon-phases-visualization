@@ -1,0 +1,1024 @@
+/* ==================== 基础样式 ==================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #0f1c2b;
+    color: #f4f7fb;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ==================== 头部导航样式 ==================== */
+header {
+    background: linear-gradient(135deg, rgba(18, 52, 86, 0.8), rgba(32, 65, 114, 0.8));
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.navigation {
+    background: rgba(23, 38, 58, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(124, 192, 255, 0.2);
+    padding: 10px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.nav-left, .nav-center, .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.nav-link {
+    color: #a9c7f6;
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.nav-link:hover {
+    background: rgba(124, 192, 255, 0.1);
+    color: #7cc0ff;
+    border-color: rgba(124, 192, 255, 0.3);
+}
+
+.nav-link.active {
+    background: rgba(124, 192, 255, 0.2);
+    color: #7cc0ff;
+    border-color: rgba(124, 192, 255, 0.4);
+}
+
+.nav-center label {
+    color: #cfe4ff;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.nav-center input,
+.nav-center .year-select {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(124, 192, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+    color: #f4f7fb;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.3s ease;
+    width: 100px;
+    cursor: pointer;
+}
+
+.nav-center input:focus,
+.nav-center .year-select:focus {
+    border-color: rgba(124, 192, 255, 0.6);
+    box-shadow: 0 0 0 2px rgba(124, 192, 255, 0.2);
+}
+
+.nav-center .year-select:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.nav-center .year-select option {
+    background: rgba(23, 38, 58, 0.95);
+    color: #f4f7fb;
+    padding: 4px 8px;
+}
+
+/* ==================== 按钮样式 ==================== */
+.action-btn {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: none;
+    background: linear-gradient(135deg, #5a99d4, #4a7fa8);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.add-event-btn, .export-csv-btn {
+    background: linear-gradient(135deg, #5a99d4, #4a7fa8);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+}
+
+.add-event-btn:hover, .export-csv-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, #6aa5d8, #5a8fb8);
+}
+
+.export-csv-btn {
+    background: linear-gradient(135deg, #28a745, #218838);
+}
+
+.export-csv-btn:hover {
+    background: linear-gradient(135deg, #34ce57, #28a745);
+}
+
+/* ==================== 主内容区域 ==================== */
+main {
+    flex: 1;
+    padding: 32px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.main-content {
+    display: flex;
+    gap: 16px;
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.chart-container {
+    background: rgba(23, 38, 58, 0.6);
+    backdrop-filter: blur(6px);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(124, 192, 255, 0.15);
+    flex: 1;
+}
+
+.chart-container h2 {
+    margin: 0 0 24px 0;
+    color: #7cc0ff;
+    font-size: 24px;
+    font-weight: 600;
+    padding-bottom: 16px;
+    border-bottom: 2px solid rgba(124, 192, 255, 0.3);
+    text-align: center;
+}
+
+/* ==================== 可视化容器样式 ==================== */
+#spiral-calendar, #calendar-heatmap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 24px;
+    min-height: 300px;
+}
+
+#spiral-calendar {
+    min-height: 400px;
+    max-height: 600px;
+    width: 100%;
+    overflow: visible;
+    position: relative;
+}
+
+#calendar-heatmap {
+    overflow-x: auto;
+}
+
+/* ==================== 图例样式 ==================== */
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(124, 192, 255, 0.2);
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #a9c7f6;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid rgba(124, 192, 255, 0.3);
+}
+
+/* ==================== 事件面板样式 ==================== */
+.events-panel {
+    background: rgba(23, 38, 58, 0.6);
+    backdrop-filter: blur(6px);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(124, 192, 255, 0.15);
+    width: 350px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.events-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(124, 192, 255, 0.3);
+}
+
+.events-panel h3 {
+    color: #7cc0ff;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.events-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.event-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(124, 192, 255, 0.2);
+    transition: all 0.2s ease;
+}
+
+.event-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+}
+
+.event-date {
+    color: #7cc0ff;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.event-text {
+    color: #f4f7fb;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.delete-event {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s ease;
+}
+
+.delete-event:hover {
+    background: #c82333;
+}
+
+.no-events {
+    color: #a9c7f6;
+    text-align: center;
+    padding: 20px;
+    font-size: 14px;
+}
+
+/* ==================== 模态框样式 ==================== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: rgba(23, 38, 58, 0.95);
+    margin: 15% auto;
+    padding: 24px;
+    border-radius: 12px;
+    width: 400px;
+    border: 1px solid rgba(124, 192, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.modal-header {
+    color: #7cc0ff;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(124, 192, 255, 0.3);
+}
+
+.modal-date-section, .modal-event-section {
+    margin-bottom: 20px;
+}
+
+.modal-date-section label, .modal-event-section label {
+    display: block;
+    color: #a9c7f6;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.modal-date-input, .modal-input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(124, 192, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+    color: #f4f7fb;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.3s ease;
+    cursor: pointer;
+}
+
+.modal-date-input {
+    margin-bottom: 8px;
+}
+
+.modal-input {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    min-height: 80px;
+    resize: vertical;
+}
+
+.modal-date-input:focus, .modal-input:focus {
+    border-color: rgba(124, 192, 255, 0.6);
+    box-shadow: 0 0 0 2px rgba(124, 192, 255, 0.2);
+}
+
+.modal-date-display {
+    color: #7cc0ff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 8px;
+    background: rgba(124, 192, 255, 0.1);
+    border-radius: 4px;
+    text-align: center;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.modal-btn-primary {
+    background: linear-gradient(135deg, #5a99d4, #4a7fa8);
+    color: #fff;
+}
+
+.modal-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.modal-btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #a9c7f6;
+    border: 1px solid rgba(124, 192, 255, 0.3);
+}
+
+.modal-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* ==================== 提示框样式 ==================== */
+.tooltip {
+    position: absolute;
+    background: rgba(23, 38, 58, 0.95);
+    border: 1px solid rgba(124, 192, 255, 0.3);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: #f4f7fb;
+    font-size: 13px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(6px);
+}
+
+/* ==================== 日历热力图特定样式 ==================== */
+.calendar-cell {
+    stroke: #4a7fa8;
+    stroke-width: 1;
+    rx: 2;
+    ry: 2;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.calendar-cell:hover {
+    stroke: #7cc0ff;
+    stroke-width: 2;
+    filter: brightness(1.2);
+}
+
+.calendar-cell.special {
+    stroke: #FFA500;
+    stroke-width: 2;
+    fill: #FFA500 !important;
+}
+
+.calendar-cell.holiday {
+    stroke: #4A90E2;
+    stroke-width: 2;
+    fill: #4A90E2 !important;
+}
+
+.calendar-cell.special:hover {
+    stroke: #FFD700;
+    filter: brightness(1.3);
+}
+
+.calendar-cell.holiday:hover {
+    stroke: #5BA0F2;
+    filter: brightness(1.3);
+}
+
+.month-label {
+    fill: #7cc0ff;
+    font-size: 12px;
+    font-weight: 600;
+    text-anchor: middle;
+}
+
+.weekday-label {
+    fill: #7cc0ff;
+    font-size: 12px;
+    font-weight: 500;
+    text-anchor: end;
+}
+
+/* ==================== 统计容器样式 ==================== */
+.stats-container {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(124, 192, 255, 0.2);
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #7cc0ff;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #a9c7f6;
+}
+
+/* ==================== Toast动画样式 ==================== */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* ==================== 响应式设计 ==================== */
+/* ==================== 月相可视化专用样式 ==================== */
+#moon-display-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    min-height: 400px;
+}
+
+.moon-info-panel {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(124, 192, 255, 0.2);
+    width: 100%;
+    max-width: 350px;
+}
+
+.moon-info-panel h3 {
+    color: #7cc0ff;
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    text-shadow: 0 0 10px rgba(124, 192, 255, 0.3);
+}
+
+.moon-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    transition: background 0.2s ease;
+}
+
+.detail-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.detail-label {
+    color: #a9c7f6;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.detail-value {
+    color: #7cc0ff;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 500px;
+}
+
+.time-control-panel {
+    min-height: 200px;
+}
+
+.time-control-compact {
+    min-height: 150px;
+}
+
+.time-compact-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.current-time-compact {
+    text-align: center;
+    font-size: 16px;
+    color: #7cc0ff;
+    font-weight: 600;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(124, 192, 255, 0.2);
+}
+
+.timeline-compact {
+    display: flex;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 8px;
+}
+
+.controls-compact {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.controls-compact .action-btn {
+    padding: 8px 12px;
+    font-size: 14px;
+    min-width: 40px;
+}
+
+.speed-select {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(124, 192, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+    color: #f4f7fb;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+}
+
+.speed-select:focus {
+    border-color: rgba(124, 192, 255, 0.6);
+    box-shadow: 0 0 0 2px rgba(124, 192, 255, 0.2);
+}
+
+.chart-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.chart-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid rgba(124, 192, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+    color: #a9c7f6;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.chart-btn:hover {
+    background: rgba(124, 192, 255, 0.2);
+    color: #7cc0ff;
+    border-color: rgba(124, 192, 255, 0.5);
+}
+
+.chart-btn.active {
+    background: linear-gradient(135deg, #5a99d4, #4a7fa8);
+    color: #ffffff;
+    border-color: #5a99d4;
+}
+
+.chart-display-container {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 250px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.time-display-section {
+    margin-bottom: 20px;
+}
+
+.current-time {
+    text-align: center;
+    font-size: 18px;
+    color: #7cc0ff;
+    font-weight: 600;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(124, 192, 255, 0.2);
+}
+
+.timeline-container {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.controls-section {
+    margin-top: 15px;
+}
+
+.controls-bar {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.action-btn.active {
+    background: linear-gradient(135deg, #7cc0ff, #6aa8e8);
+    transform: scale(1.05);
+}
+
+#phase-chart-container,
+#distance-chart-container,
+#diameter-chart-container {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.axis {
+    color: #a9c7f6;
+    font-size: 12px;
+}
+
+.axis line,
+.axis path {
+    stroke: #7cc0ff;
+    stroke-width: 1;
+}
+
+.axis text {
+    fill: #a9c7f6;
+}
+
+.grid line {
+    stroke: rgba(124, 192, 255, 0.1);
+    stroke-dasharray: 2, 2;
+}
+
+.phase-line,
+.distance-line,
+.diameter-line {
+    fill: none;
+    stroke-width: 2;
+}
+
+.phase-line {
+    stroke: #7cc0ff;
+}
+
+.distance-line {
+    stroke: #ff6b6b;
+}
+
+.diameter-line {
+    stroke: #4ecdc4;
+}
+
+.star {
+    animation: twinkle 3s infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    header {
+        padding: 8px 12px;
+    }
+
+    header h1 {
+        font-size: 18px;
+        margin-bottom: 2px;
+    }
+
+    header p {
+        font-size: 11px;
+    }
+
+    main {
+        padding: 16px;
+        flex-direction: column;
+    }
+
+    .main-content {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .controls-bar {
+        padding: 8px 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .controls-bar label {
+        font-size: 12px;
+    }
+
+    .controls-bar input {
+        width: 80px;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .action-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .chart-container {
+        padding: 16px;
+        max-width: 100%;
+    }
+
+    .chart-container h2 {
+        font-size: 18px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+    }
+
+    .right-panel {
+        min-width: auto;
+        gap: 16px;
+    }
+
+    .moon-info-panel {
+        max-width: 100%;
+        padding: 16px;
+    }
+
+    .moon-info-panel h3 {
+        font-size: 20px;
+    }
+
+    .detail-row {
+        padding: 6px 10px;
+    }
+
+    .detail-label,
+    .detail-value {
+        font-size: 13px;
+    }
+
+    .current-time {
+        font-size: 16px;
+        padding: 10px;
+    }
+
+    #phase-chart-container,
+    #distance-chart-container,
+    #diameter-chart-container {
+        min-height: 180px;
+    }
+
+    .stats-container {
+        flex-direction: column;
+        gap: 16px;
+    }
+}
+
+/* ==================== 参数介绍样式 ==================== */
+.parameter-info {
+    background: rgba(23, 38, 58, 0.6);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(124, 192, 255, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 0;
+    margin-bottom: 0;
+    transition: all 0.3s ease;
+}
+
+.parameter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.parameter-header h3 {
+    color: #f4f7fb;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.icon-selector {
+    display: flex;
+    gap: 6px;
+}
+
+.icon-btn {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(124, 192, 255, 0.3);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+}
+
+.icon-btn:hover {
+    background: rgba(59, 130, 246, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.icon-btn.active {
+    background: rgba(59, 130, 246, 0.4);
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.parameter-content {
+    color: #e2e8f0;
+}
+
+.parameter-item h4 {
+    color: #f4f7fb;
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+}
+
+.parameter-item p {
+    color: #a9c7f6;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0 0 12px 0;
+}
+
+.parameter-item ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.parameter-item li {
+    color: #cbd5e1;
+    font-size: 12px;
+    line-height: 1.4;
+    padding: 4px 0;
+    padding-left: 14px;
+    position: relative;
+}
+
+.parameter-item li:before {
+    content: "•";
+    color: #60a5fa;
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+

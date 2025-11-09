@@ -1,0 +1,2837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>月相演变动画演示 - 正确版本</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // 检查D3.js是否正确加载
+        window.addEventListener('load', () => {
+            if (typeof d3 === 'undefined') {
+                console.error('❌ D3.js未能正确加载！');
+            } else {
+                console.log('✅ D3.js已正确加载，版本:', d3.version);
+            }
+        });
+    </script>
+    <link rel="stylesheet" href="enhanced.css">
+    <link rel="stylesheet" href="moon-styles.css">
+    <style>
+        body {
+            background: #0f1c2b;
+            color: #f4f7fb;
+        }
+        .animation-container {
+            width: 100%;
+            height: 90vh;
+            min-height: 600px;
+            position: relative;
+            background: rgba(23, 38, 58, 0.6);
+            border-radius: 16px;
+            overflow: hidden;
+            margin: 0 auto;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(124, 192, 255, 0.15);
+            backdrop-filter: blur(6px);
+        }
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(2px 2px at 20% 30%, white, transparent),
+                radial-gradient(2px 2px at 60% 70%, white, transparent),
+                radial-gradient(1px 1px at 50% 50%, white, transparent),
+                radial-gradient(1px 1px at 80% 20%, white, transparent),
+                radial-gradient(1px 1px at 10% 80%, white, transparent);
+            background-size: 300px 300px;
+            animation: twinkle 5s ease-in-out infinite alternate;
+            opacity: 0.8;
+        }
+        @keyframes twinkle {
+            0% { opacity: 0.4; }
+            100% { opacity: 0.8; }
+        }
+        .arc-timeline {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .moon-display {
+            position: absolute;
+            text-align: center;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10;
+        }
+        .moon-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            transition: all 0.5s ease;
+            transform-origin: center;
+        }
+        .moon-info {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .date-display {
+            color: #a0a0a0;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .control-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+        }
+        .speed-slider {
+            width: 120px;
+        }
+        .progress-info {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            color: white;
+            text-align: right;
+        }
+        .timeline-point {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .timeline-point:hover {
+            r: 8;
+        }
+        .month-indicator {
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        .phase-label {
+            fill: white;
+            font-size: 16px;
+            text-anchor: middle;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        .moon-trail {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .moon-orbit-path {
+            fill: none;
+            stroke: none; /* 隐藏白色虚线 */
+            stroke-width: 0;
+        }
+        /* 图表区域样式 - 与index.html一致 */
+        .chart-section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #0f1c2b;
+            z-index: 9999; /* 提高层级确保在最前面 */
+            opacity: 0; /* 初始完全透明 */
+            visibility: hidden; /* 初始隐藏 */
+            transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+            overflow: hidden;
+            display: flex; /* 确保flex布局正常工作 */
+            flex-direction: column;
+        }
+        .chart-section.show {
+            opacity: 1; /* 完全显示 */
+            visibility: visible; /* 可见 */
+        }
+        .chart-container {
+            padding: 32px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            flex: 1;
+        }
+        /* 与index.html一致的图表头部样式 */
+        .charts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid rgba(124, 192, 255, 0.3);
+        }
+        .charts-header h2 {
+            color: #7cc0ff;
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .chart-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .chart-type-select {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 2px solid rgba(124, 192, 255, 0.4);
+            background: linear-gradient(135deg, rgba(23, 38, 58, 0.8), rgba(15, 28, 43, 0.9));
+            color: #7cc0ff;
+            font-size: 14px;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .chart-type-select:focus {
+            border-color: rgba(124, 192, 255, 0.8);
+            box-shadow: 0 4px 16px rgba(124, 192, 255, 0.3), 0 0 0 2px rgba(124, 192, 255, 0.2);
+            background: linear-gradient(135deg, rgba(23, 38, 58, 0.9), rgba(15, 28, 43, 1));
+        }
+        .chart-type-select:hover {
+            border-color: rgba(124, 192, 255, 0.6);
+            background: linear-gradient(135deg, rgba(23, 38, 58, 0.85), rgba(15, 28, 43, 0.95));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        /* 下拉选项样式 */
+        .chart-type-select option {
+            background: #17263a;
+            color: #7cc0ff;
+            padding: 8px 12px;
+            border: none;
+        }
+        .chart-type-select option:hover {
+            background: rgba(124, 192, 255, 0.2);
+        }
+        /* 与index.html一致的主图表容器 */
+        .main-chart-container {
+            background: rgba(23, 38, 58, 0.6);
+            backdrop-filter: blur(6px);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(124, 192, 255, 0.15);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-title {
+            color: #7cc0ff;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .dynamic-chart {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            width: 100%;
+            flex: 1; /* 占据剩余空间 */
+            min-height: 500px;
+            overflow: hidden;
+            border: 1px solid rgba(124, 192, 255, 0.1);
+        }
+        /* 图表模式下的动画容器样式 */
+        .animation-container.chart-mode {
+            opacity: 0.15; /* 保留一些可见性 */
+        }
+        /* 图表模式下的控制按钮保持完全可用 */
+        .animation-container.chart-mode .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            background: rgba(23, 38, 58, 0.95);
+            padding: 20px;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(124, 192, 255, 0.2);
+            opacity: 1 !important; /* 确保控制按钮完全可见 */
+            pointer-events: auto !important; /* 确保控制按钮可交互 */
+        }
+        .control-btn.chart-active {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+            border-color: #ff6b6b;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        /* 详细信息模态框样式 */
+        .detail-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 20000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a3a52, #0f1c2b);
+            border-radius: 20px;
+            max-width: 800px;
+            max-height: 90vh;
+            width: 90%;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(124, 192, 255, 0.3);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 32px;
+            border-bottom: 1px solid rgba(124, 192, 255, 0.2);
+            background: rgba(23, 38, 58, 0.5);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #7cc0ff;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #a0a0a0;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        .modal-body {
+            padding: 32px;
+            max-height: calc(90vh - 120px);
+            overflow-y: auto;
+            color: #f4f7fb;
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-body::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: rgba(124, 192, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb:hover {
+            background: rgba(124, 192, 255, 0.5);
+        }
+
+        /* 信息展示样式 */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px 24px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(124, 192, 255, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .info-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(124, 192, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .info-section {
+            padding: 20px;
+            background: rgba(23, 38, 58, 0.3);
+            border-radius: 12px;
+            border: 1px solid rgba(124, 192, 255, 0.15);
+        }
+
+        /* 全屏图表控制按钮样式 - 美化版本 */
+        .chart-control-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, rgba(124, 192, 255, 0.2), rgba(124, 192, 255, 0.1));
+            border: 2px solid rgba(124, 192, 255, 0.4);
+            color: #7cc0ff;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        .chart-control-btn:hover {
+            background: linear-gradient(135deg, rgba(124, 192, 255, 0.3), rgba(124, 192, 255, 0.2));
+            border-color: rgba(124, 192, 255, 0.6);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(124, 192, 255, 0.3);
+            color: #a9d4ff;
+        }
+        .chart-control-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <!-- 紧凑的顶部控制栏 -->
+    <header class="compact-header">
+        <div class="compact-controls">
+            <div class="title-section">
+                <span class="moon-icon">🌙</span>
+                <h1>月相演变可视化</h1>
+            </div>
+
+            <div class="control-section">
+                <div class="view-controls">
+                    <button id="grid-view-btn" class="mini-btn">网格</button>
+                    <button id="back-btn" class="mini-btn">返回主页</button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <div class="content-layout">
+            <section class="left-panel" style="width: 100%;">
+                <div class="animation-container">
+                    <!-- 星空背景 -->
+                    <div class="stars"></div>
+                    <!-- 月亮显示区域 -->
+                    <div class="moon-display">
+                        <img id="moon-image" class="moon-image" src="./月相序列图/10-亏凸月.jpg" alt="月相">
+                        <div class="moon-info" id="moon-phase">亏凸月</div>
+                        <div class="date-display" id="date-display">2024年1月1日</div>
+                    </div>
+                    <!-- 进度信息 -->
+                    <div class="progress-info">
+                        <div>月相进度: <span id="phase-progress">78.0%</span></div>
+                        <div>地月距离: <span id="moon-distance">404,634 km</span></div>
+                        <div>月龄: <span id="moon-age">19.0 天</span></div>
+                        <div>动画进度: <span id="animation-progress">0.0%</span></div>
+                    </div>
+                    <!-- 月亮轨道 -->
+                    <svg class="moon-trail" width="100%" height="100%">
+                        <path id="moon-orbit" class="moon-orbit-path"></path>
+                    </svg>
+                    <!-- 弧形时间线 -->
+                    <svg id="arc-timeline" class="arc-timeline" width="100%" height="100%">
+                        <!-- 时间线将通过D3.js动态生成 -->
+                    </svg>
+                    <!-- 控制按钮 -->
+                    <div class="controls">
+                        <button id="start-btn" class="control-btn">开始演示</button>
+                        <button id="pause-btn" class="control-btn" disabled>暂停</button>
+                        <button id="reset-btn" class="control-btn">重置</button>
+                        <button id="chart-btn" class="control-btn">图表绘制</button>
+                        <div class="speed-control">
+                            <label>速度:</label>
+                            <input type="range" id="speed-slider" class="speed-slider" min="1" max="3" value="2">
+                            <span id="speed-value">2x</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+      <!-- 图表显示区域 -->
+    <section id="chart-section" class="chart-section hidden">
+        <div class="chart-container">
+            <div class="charts-header">
+                <h2>数据分析</h2>
+                <div class="chart-controls">
+                    <select id="chart-type-select" class="chart-type-select">
+                        <option value="illumination">月相照明度变化</option>
+                        <option value="distance">地月距离变化</option>
+                        <option value="diameter">视直径变化</option>
+                        <option value="distribution">月相分布统计</option>
+                        <option value="relationship">照明度-距离关系</option>
+                    </select>
+                                      <button id="close-chart-btn" class="control-btn">关闭图表</button>
+                </div>
+            </div>
+            <!-- 单张大图表容器 -->
+            <div class="main-chart-container">
+                <div class="chart-title" id="chart-title">月相照明度变化</div>
+                <div class="main-chart" id="dynamic-chart"></div>
+            </div>
+        </div>
+    </section>
+</main>
+
+    <!-- 详细信息模态框 -->
+    <div id="detail-modal" class="detail-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🌙 月相详细数据</h3>
+                <button id="close-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- 详细信息将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载JavaScript -->
+    <script src="local-moon-phases.js"></script>
+    <script>
+        // ==================== 正确的月相动画系统 ====================
+        // 全局变量
+        let moonData = [];
+        let currentIndex = 0;
+        let isPlaying = false;
+        let animationId = null;
+        let speed = 2; // 默认速度改为2x
+        let isChartMode = false; // 图表模式状态
+        let chartData = []; // 图表数据缓存
+        let currentChartType = 'illumination'; // 当前图表类型
+        let timelinePoints = []; // 存储时间线点的坐标数据
+        // 月相名称映射 - 与getMoonImagePath使用完全相同的逻辑
+        function getPhaseName(phase, age = 0) {
+            const illum = parseFloat(phase) || 0;
+            const moonAge = parseFloat(age) || 0;
+            // 调整月龄到周期内（0-29.53天）
+            let adjustedAge = moonAge % 29.53;
+            if (adjustedAge < 0) adjustedAge += 29.53;
+            // 正确的月相判断 - 基于月龄累增规律
+            // 1. 新月：月龄 0-1.84天，照明度 0-12.5%
+            if (adjustedAge < 1.84) {
+                return '新月';
+            }
+            // 2. 娥眉月：月龄 1.84-5.84天，照明度 12.5-50%
+            else if (adjustedAge < 5.84) {
+                return '娥眉月';
+            }
+            // 3. 上弦月：月龄 5.84-9.84天，照明度约50%
+            else if (adjustedAge < 9.84) {
+                return '上弦月';
+            }
+            // 4. 盈凸月：月龄 9.84-13.84天，照明度 50-100%
+            else if (adjustedAge < 13.84) {
+                return '盈凸月';
+            }
+            // 5. 满月：月龄 13.84-17.84天，照明度约100%
+            else if (adjustedAge < 17.84) {
+                return '满月';
+            }
+            // 6. 亏凸月：月龄 17.84-21.84天，照明度 100-50%
+            else if (adjustedAge < 21.84) {
+                return '亏凸月';
+            }
+            // 7. 下弦月：月龄 21.84-25.84天，照明度约50%
+            else if (adjustedAge < 25.84) {
+                return '下弦月';
+            }
+            // 8. 残月：月龄 25.84-29.53天，照明度 50-0%
+            else {
+                return '残月';
+            }
+        }
+        // 月相图片映射 - 基于正确的月相周期（月龄累增规律）
+        function getMoonImagePath(phase, age = null) {
+            const illum = parseFloat(phase) || 0;
+            const moonAge = parseFloat(age) || 0;
+            // 调整月龄到周期内（0-29.53天）
+            let adjustedAge = moonAge % 29.53;
+            if (adjustedAge < 0) adjustedAge += 29.53;
+            // 正确的月相判断 - 基于月龄累增规律
+            // 1. 新月：月龄 0-1.84天，照明度 0-12.5%
+            if (adjustedAge < 1.84) {
+                return './月相序列图/0-新月.jpg';
+            }
+            // 2. 娥眉月：月龄 1.84-5.84天，照明度 12.5-50%
+            else if (adjustedAge < 5.84) {
+                if (illum < 20) return './月相序列图/1-娥眉月.jpg';
+                else if (illum < 35) return './月相序列图/2-娥眉月.jpg';
+                else return './月相序列图/3-娥眉月.jpg';
+            }
+            // 3. 上弦月：月龄 5.84-9.84天，照明度约50%
+            else if (adjustedAge < 9.84) {
+                return './月相序列图/4-上弦月.jpg';
+            }
+            // 4. 盈凸月：月龄 9.84-13.84天，照明度 50-100%
+            else if (adjustedAge < 13.84) {
+                if (illum < 65) return './月相序列图/5-盈凸月.jpg';
+                else if (illum < 85) return './月相序列图/6-盈凸月.jpg';
+                else return './月相序列图/7-盈凸月.jpg';
+            }
+            // 5. 满月：月龄 13.84-17.84天，照明度约100%
+            else if (adjustedAge < 17.84) {
+                return './月相序列图/8-满月.jpg';
+            }
+            // 6. 亏凸月：月龄 17.84-21.84天，照明度 100-50%
+            else if (adjustedAge < 21.84) {
+                if (illum > 75) return './月相序列图/9-亏凸月.jpg';
+                else return './月相序列图/10-亏凸月.jpg'; // ← 1月1日(19.02天,78.03%)使用这个
+            }
+            // 7. 下弦月：月龄 21.84-25.84天，照明度约50%
+            else if (adjustedAge < 25.84) {
+                return './月相序列图/11-下弦月.jpg';
+            }
+            // 8. 残月：月龄 25.84-29.53天，照明度 50-0%
+            else {
+                if (illum < 20) return './月相序列图/14-残月.jpg';
+                else if (illum < 35) return './月相序列图/13-残月.jpg';
+                else return './月相序列图/12-残月.jpg';
+            }
+        }
+        // 加载数据
+        async function loadMoonData() {
+            try {
+                console.log('🔄 开始加载月相数据...');
+                const response = await fetch('data.json');
+                const data = await response.json();
+                moonData = data.map(item => {
+                    // 正确解析日期格式 "01 Jan 2024 00:00 UT"
+                    const dateStr = item.time.replace(' UT', '');
+                    const date = new Date(dateStr);
+                    return {
+                        date: date,
+                        phase: item.phase,
+                        age: item.age,
+                        distance: item.distance,
+                        diameter: item.diameter
+                    };
+                });
+                console.log('✅ 加载了', moonData.length, '条月相数据');
+                // 验证2024年1月1日的数据
+                const janFirst = moonData.find(item => {
+                    const date = item.date;
+                    return date.getFullYear() === 2024 && date.getMonth() === 0 && date.getDate() === 1;
+                });
+                if (janFirst) {
+                    console.log('🎯 2024年1月1日数据验证:', {
+                        date: janFirst.date,
+                        phase: janFirst.phase,
+                        age: janFirst.age,
+                        phaseName: getPhaseName(janFirst.phase, janFirst.age),
+                        imagePath: getMoonImagePath(janFirst.phase, janFirst.age)
+                    });
+                }
+                // 初始化时间线和月亮位置
+                initializeTimeline();
+                // 等待时间线初始化完成后，设置月亮初始位置
+                setTimeout(() => {
+                    initializeMoonPosition();
+                }, 100);
+                // 如果图表模式已经开启，初始化图表
+                if (isChartMode) {
+                    console.log('📊 数据加载完成，初始化图表...');
+                    setTimeout(() => {
+                        initializeChart();
+                    }, 200);
+                }
+                console.log('🎉 月相数据加载完成');
+            } catch (error) {
+                console.error('❌ 加载数据失败:', error);
+                // 如果图表模式开启，显示错误信息
+                if (isChartMode) {
+                    const chartContainer = document.getElementById('dynamic-chart');
+                    if (chartContainer) {
+                        chartContainer.innerHTML = `
+                            <div style="color: #7cc0ff; text-align: center; padding: 40px; font-size: 16px;">
+                                <div style="margin-bottom: 20px;">数据加载失败</div>
+                                <div style="font-size: 14px; opacity: 0.8;">请刷新页面重试</div>
+                                <button onclick="location.reload()" style="margin-top: 20px; padding: 8px 16px; background: #7cc0ff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    刷新页面
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            }
+        }
+        // 初始化弧形时间线和轨道
+        function initializeTimeline() {
+            const svg = d3.select('#arc-timeline');
+            const container = document.querySelector('.animation-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const centerX = width / 2;
+            const centerY = height * 0.65; // 向下移动弧线
+            const radius = Math.min(width, height) * 0.45; // 扩大弧线半径
+            // 绘制月亮轨道
+            drawMoonOrbit(centerX, centerY, radius);
+            // 创建弧形生成器 - 去除白色虚影
+            const arc = d3.arc()
+                .innerRadius(radius - 8) // 增加弧线宽度
+                .outerRadius(radius + 8)
+                .startAngle(0)
+                .endAngle(Math.PI);
+            // 添加月份标签
+            const months = ['一月', '二月', '三月', '四月', '五月', '六月',
+                          '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            // 存储月份标签位置供月亮移动参考
+            window.monthPositions = [];
+            months.forEach((month, index) => {
+                // 计算月份对应的年进度（考虑月份开始位置）
+                // 一月：0/12，二月：1/12，...，十二月：11/12
+                const monthProgress = index / 11; // 0到1，11个间隔，12个月份
+                const angle = Math.PI * monthProgress; // 0到π
+                const x = centerX + Math.cos(Math.PI - angle) * (radius + 60);
+                const y = centerY - Math.sin(angle) * (radius + 60);
+                // 存储月份位置信息
+                window.monthPositions.push({
+                    month: month,
+                    monthIndex: index,
+                    monthProgress: monthProgress,
+                    angle: angle,
+                    labelX: x,
+                    labelY: y,
+                    arcX: centerX + Math.cos(Math.PI - angle) * radius, // 弧线上的位置
+                    arcY: centerY - Math.sin(angle) * radius
+                });
+                svg.append('text')
+                    .attr('x', x)
+                    .attr('y', y)
+                    .attr('text-anchor', 'middle')
+                    .attr('class', 'phase-label')
+                    .text(month);
+            });
+            console.log('📍 月份标签位置已计算:', window.monthPositions.map(m => ({
+                month: m.month,
+                progress: m.monthProgress.toFixed(3),
+                angle: (m.angle * 180 / Math.PI).toFixed(1) + '°',
+                arcPos: `(${m.arcX.toFixed(1)}, ${m.arcY.toFixed(1)})`
+            })));
+            // 创建时间线点
+            updateTimelinePoints();
+        }
+        // 绘制月亮轨道
+        function drawMoonOrbit(centerX, centerY, radius) {
+            const orbitSvg = d3.select('.moon-trail');
+            // 创建弧形路径生成器 - 实线轨道
+            const arcPath = d3.arc()
+                .innerRadius(radius)
+                .outerRadius(radius)
+                .startAngle(0)
+                .endAngle(Math.PI);
+            // 绘制轨道 - 纯白色实线
+            orbitSvg.select('#moon-orbit')
+                .datum({startAngle: 0, endAngle: Math.PI})
+                .attr('d', arcPath)
+                .attr('transform', `translate(${centerX}, ${centerY})`)
+                .attr('fill', 'none')
+                .attr('stroke', 'white')
+                .attr('stroke-width', 2);
+            console.log(`🌙 绘制轨道: 中心(${centerX}, ${centerY}), 半径=${radius}`);
+        }
+        // 更新时间线点
+        function updateTimelinePoints() {
+            const svg = d3.select('#arc-timeline');
+            const container = document.querySelector('.animation-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const centerX = width / 2;
+            const centerY = height * 0.65; // 与其他函数保持一致，向下移动
+            const radius = Math.min(width, height) * 0.45;
+            // 计算当前显示的数据点
+            const totalData = moonData.length;
+            const pointsPerMonth = Math.floor(totalData / 12);
+            const displayPoints = Math.min(pointsPerMonth, 80); // 增加点数
+            const step = Math.floor(totalData / (displayPoints * 12));
+            const points = [];
+            for (let i = 0; i < totalData; i += step) {
+                // 更精确的角度计算，确保对称分布
+                const yearProgress = i / totalData; // 0 到 1
+                const angle = Math.PI * yearProgress; // 0 到 π，线性映射
+                const pointData = {
+                    x: centerX + Math.cos(Math.PI - angle) * radius,
+                    y: centerY - Math.sin(angle) * radius,
+                    data: moonData[i],
+                    index: i,
+                    yearProgress: yearProgress,
+                    angle: angle
+                };
+                points.push(pointData);
+            }
+            // 存储时间线点到全局变量，供月亮移动使用
+            timelinePoints = points;
+            console.log(`📍 时间线点已更新，共 ${timelinePoints.length} 个点`);
+            // 绘制时间线点
+            const circles = svg.selectAll('.timeline-point')
+                .data(points);
+            circles.enter()
+                .append('circle')
+                .attr('class', 'timeline-point')
+                .attr('cx', d => d.x)
+                .attr('cy', d => d.y)
+                .attr('r', 5) // 增大点的尺寸
+                .attr('fill', 'white')
+                                    .on('mouseover', function(event, d) {
+                    d3.select(this).attr('r', 10);
+                })
+                .on('mouseout', function(event, d) {
+                    d3.select(this).attr('r', 5);
+                });
+            circles.exit().remove();
+        }
+        // 更新显示
+        function updateDisplay() {
+            if (moonData.length === 0) {
+                console.log('⚠️ updateDisplay: 月相数据尚未加载');
+                return;
+            }
+            const currentData = moonData[currentIndex];
+            console.log(`🔄 updateDisplay: 索引=${currentIndex}, 日期=${currentData.date.toLocaleDateString('zh-CN')}`);
+            // 只有在动画播放状态下才更新月亮位置
+            if (isPlaying) {
+                updateMoonPosition(currentData);
+            } else {
+                console.log('⏸️ 动画未播放，不更新月亮位置');
+            }
+            // 更新月亮图片
+            const moonImage = document.getElementById('moon-image');
+            moonImage.src = getMoonImagePath(currentData.phase, currentData.age);
+            // 更新月相信息 - 使用正确的月相名称函数
+            document.getElementById('moon-phase').textContent = getPhaseName(currentData.phase, currentData.age);
+            // 更新日期
+            const date = currentData.date;
+            const dateStr = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+            document.getElementById('date-display').textContent = dateStr;
+            // 更新进度信息
+            document.getElementById('phase-progress').textContent = `${currentData.phase.toFixed(1)}%`;
+            document.getElementById('moon-distance').textContent = `${currentData.distance.toLocaleString()} km`;
+            document.getElementById('moon-age').textContent = `${currentData.age.toFixed(1)} 天`;
+            // 更新动画进度
+            const progress = ((currentIndex / moonData.length) * 100).toFixed(1);
+            document.getElementById('animation-progress').textContent = `${progress}%`;
+            // 高亮当前时间线点
+            highlightCurrentPoint();
+        }
+        // 初始化月亮位置（一月位置）
+        function initializeMoonPosition() {
+            if (moonData.length === 0) return;
+            console.log('🎯 初始化月亮位置，数据总数:', moonData.length);
+            // 找到一月第一天的数据
+            const janFirstData = moonData.find(item => {
+                const date = item.date;
+                return date.getFullYear() === 2024 && date.getMonth() === 0 && date.getDate() === 1;
+            });
+            if (janFirstData) {
+                console.log('✅ 找到一月一日数据:', janFirstData);
+                currentIndex = moonData.indexOf(janFirstData);
+                // 使用一月一日的数据初始化位置
+                updateMoonPosition(janFirstData);
+                // 更新显示信息
+                const moonImage = document.getElementById('moon-image');
+                moonImage.src = getMoonImagePath(janFirstData.phase, janFirstData.age);
+                document.getElementById('moon-phase').textContent = getPhaseName(janFirstData.phase, janFirstData.age);
+                document.getElementById('date-display').textContent = '2024年1月1日';
+                document.getElementById('phase-progress').textContent = `${janFirstData.phase.toFixed(1)}%`;
+                document.getElementById('moon-distance').textContent = `${janFirstData.distance.toLocaleString()} km`;
+                document.getElementById('moon-age').textContent = `${janFirstData.age.toFixed(1)} 天`;
+                document.getElementById('animation-progress').textContent = '0.0%';
+                console.log('🎯 验证结果 - 1月1日应该显示:', {
+                    phaseName: getPhaseName(janFirstData.phase, janFirstData.age),
+                    imagePath: getMoonImagePath(janFirstData.phase, janFirstData.age),
+                    phase: janFirstData.phase,
+                    age: janFirstData.age
+                });
+            } else {
+                console.log('⚠️ 未找到一月一日数据，使用第一个数据点');
+                // 如果没有找到一月一日的数据，使用第一个数据点
+                updateMoonPosition(moonData[0]);
+                updateDisplay();
+            }
+        }
+        // 获取SVG时间线上指定日期的精确坐标 - 与月份标签对齐
+        function getTimelinePosition(date) {
+            // 计算当前日期在一年中的进度 (0-1)
+            const yearStart = new Date(date.getFullYear(), 0, 1);
+            const yearEnd = new Date(date.getFullYear() + 1, 0, 1);
+            const yearProgress = (date - yearStart) / (yearEnd - yearStart);
+            // 获取当前月份和日期信息
+            const month = date.getMonth(); // 0-11
+            const day = date.getDate();
+            const daysInMonth = new Date(date.getFullYear(), month + 1, 0).getDate();
+            // 计算月内进度 (0-1)
+            const monthProgress = (day - 1) / daysInMonth;
+            // 修正月份进度计算：确保1月1日对应弧线最左端（角度=0）
+            // 使用11个间隔来分配12个月份
+            const exactYearProgress = (month + monthProgress) / 11;
+            const angle = Math.PI * exactYearProgress;
+            // 使用与时间线点相同的坐标计算
+            const container = document.querySelector('.animation-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const centerX = width / 2;
+            const centerY = height * 0.65;
+            const radius = Math.min(width, height) * 0.45;
+            const x = centerX + Math.cos(Math.PI - angle) * radius;
+            const y = centerY - Math.sin(angle) * radius;
+            console.log(`📍 位置计算 (修复版):`);
+            console.log(`  日期: ${date.toLocaleDateString('zh-CN')}`);
+            console.log(`  月份: ${month + 1}, 日期: ${day}/${daysInMonth}`);
+            console.log(`  年进度: ${yearProgress.toFixed(3)} (数据) vs ${exactYearProgress.toFixed(3)} (月份标签)`);
+            console.log(`  角度: ${(angle * 180 / Math.PI).toFixed(1)}°`);
+            console.log(`  位置: (${x.toFixed(1)}, ${y.toFixed(1)})`);
+            // 特殊验证1月1日应该在弧线最左端
+            if (month === 0 && day === 1) {
+                const expectedX = centerX - radius; // 弧线最左端
+                const expectedY = centerY;
+                const deviation = Math.sqrt(Math.pow(x - expectedX, 2) + Math.pow(y - expectedY, 2));
+                console.log(`  🔍 1月1日验证: 应该在(${expectedX.toFixed(1)}, ${expectedY.toFixed(1)}), 实际偏差: ${deviation.toFixed(1)}px`);
+            }
+            // 查找对应的月份标签位置进行验证
+            if (window.monthPositions && window.monthPositions[month]) {
+                const monthPos = window.monthPositions[month];
+                const distance = Math.sqrt(
+                    Math.pow(x - monthPos.arcX, 2) +
+                    Math.pow(y - monthPos.arcY, 2)
+                );
+                console.log(`  与${monthPos.month}标签距离: ${distance.toFixed(1)}px`);
+            }
+            return { x, y };
+        }
+        // 数学计算的时间线位置（备用方法）
+        function getMathematicalTimelinePosition(date) {
+            const container = document.querySelector('.animation-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            if (width === 0 || height === 0) {
+                console.error('❌ 容器尺寸为0，无法计算时间线位置');
+                return { x: width / 2, y: height * 0.65 };
+            }
+            const centerX = width / 2;
+            const centerY = height * 0.65; // 与时间线保持一致
+            const radius = Math.min(width, height) * 0.45; // 与时间线保持一致
+            // 计算当前日期在一年中的进度 (0-1)
+            const yearStart = new Date(date.getFullYear(), 0, 1);
+            const yearEnd = new Date(date.getFullYear() + 1, 0, 1);
+            const yearProgress = (date - yearStart) / (yearEnd - yearStart);
+            // 计算角度 (从一月到十二月，对应弧形从左到右)
+            const angle = Math.PI * yearProgress; // 0 到 π
+            // 使用与时间线点完全相同的计算方式
+            const x = centerX + Math.cos(Math.PI - angle) * radius;
+            const y = centerY - Math.sin(angle) * radius;
+            console.log(`📍 数学计算时间线位置: 年进度=${yearProgress.toFixed(3)}, 角度=${(angle * 180 / Math.PI).toFixed(1)}°, 位置=(${x.toFixed(1)}, ${y.toFixed(1)})`);
+            return { x, y };
+        }
+        // 更新月亮在弧形路径上的位置和形状 - 严格按照SVG时间线
+        function updateMoonPosition(currentData) {
+            console.log(`🌙 开始更新月亮位置，日期: ${currentData.date.toLocaleDateString('zh-CN')}`);
+            // 使用SVG时间线的相同坐标计算逻辑
+            const position = getTimelinePosition(currentData.date);
+            console.log(`📐 月亮目标位置: (${position.x.toFixed(1)}, ${position.y.toFixed(1)})`);
+            // 更新月亮显示元素的位置
+            const moonDisplay = document.querySelector('.moon-display');
+            if (moonDisplay) {
+                // 强制设置定位样式，覆盖外部CSS
+                moonDisplay.style.setProperty('position', 'absolute', 'important');
+                moonDisplay.style.setProperty('left', `${position.x}px`, 'important');
+                moonDisplay.style.setProperty('top', `${position.y}px`, 'important');
+                moonDisplay.style.setProperty('z-index', '10', 'important');
+                moonDisplay.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
+                moonDisplay.style.setProperty('margin', '0', 'important');
+                moonDisplay.style.setProperty('padding', '0', 'important');
+                console.log(`✅ 月亮位置已更新: left=${position.x}px, top=${position.y}px`);
+            } else {
+                console.error('❌ 未找到月亮显示元素 .moon-display');
+                return;
+            }
+            // 固定月亮大小，不再变化
+            const container = document.querySelector('.animation-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const moonImage = document.getElementById('moon-image');
+            if (moonImage) {
+                const fixedSize = Math.min(width, height) * 0.08; // 减小为更适中的尺寸
+                moonImage.style.width = `${fixedSize}px`;
+                moonImage.style.height = `${fixedSize}px`;
+                // 去除所有发光和亮度变化效果
+                moonImage.style.filter = 'none';
+                moonImage.style.boxShadow = 'none';
+                console.log(`🎨 月亮图片尺寸已设置: ${fixedSize.toFixed(1)}px`);
+            }
+            // 验证位置是否正确（与时间线点对齐）
+            verifyMoonAlignment(currentData);
+        }
+        // 验证月亮位置与月份标签的对齐
+        function verifyMoonAlignment(currentData) {
+            const moonDisplay = document.querySelector('.moon-display');
+            if (!moonDisplay) return;
+            const moonRect = moonDisplay.getBoundingClientRect();
+            const moonCenterX = moonRect.left + moonRect.width / 2;
+            const moonCenterY = moonRect.top + moonRect.height / 2;
+            // 获取当前日期信息
+            const currentDate = currentData.date;
+            const currentMonth = currentDate.getMonth();
+            const currentDay = currentDate.getDate();
+            const daysInMonth = new Date(currentDate.getFullYear(), currentMonth + 1, 0).getDate();
+            console.log(`🔍 月亮与月份标签对齐验证:`);
+            console.log(`  当前日期: ${currentDate.toLocaleDateString('zh-CN')}`);
+            console.log(`  月亮中心: (${moonCenterX.toFixed(1)}, ${moonCenterY.toFixed(1)})`);
+            // 验证与当前月份标签的对齐
+            if (window.monthPositions && window.monthPositions[currentMonth]) {
+                const monthPos = window.monthPositions[currentMonth];
+                // 获取SVG容器的位置
+                const svgElement = document.getElementById('arc-timeline');
+                const svgRect = svgElement.getBoundingClientRect();
+                // 转换月份标签弧线位置为屏幕坐标
+                const monthArcScreenX = svgRect.left + monthPos.arcX;
+                const monthArcScreenY = svgRect.top + monthPos.arcY;
+                const monthDistance = Math.sqrt(
+                    Math.pow(moonCenterX - monthArcScreenX, 2) +
+                    Math.pow(moonCenterY - monthArcScreenY, 2)
+                );
+                console.log(`  ${monthPos.month}标签弧线位置: (${monthArcScreenX.toFixed(1)}, ${monthArcScreenY.toFixed(1)})`);
+                console.log(`  与${monthPos.month}标签距离: ${monthDistance.toFixed(1)}px`);
+                console.log(`  月内进度: ${currentDay}/${daysInMonth} (${((currentDay - 1) / daysInMonth * 100).toFixed(1)}%)`);
+                if (monthDistance <= 30) {
+                    console.log(`✅ 月亮与${monthPos.month}标签对齐良好`);
+                } else if (monthDistance <= 60) {
+                    console.log(`⚠️ 月亮与${monthPos.month}标签位置可接受 (${monthDistance.toFixed(1)}px)`);
+                } else {
+                    console.warn(`❌ 月亮与${monthPos.month}标签偏差过大: ${monthDistance.toFixed(1)}px`);
+                }
+                // 如果偏差很大，显示详细调试信息
+                if (monthDistance > 80) {
+                    console.warn(`🐛 详细调试信息:`);
+                    console.warn(`  容器尺寸: ${svgRect.width}x${svgRect.height}`);
+                    console.warn(`  月亮样式: left=${moonDisplay.style.left}, top=${moonDisplay.style.top}`);
+                    console.warn(`  计算位置: (${monthPos.arcX.toFixed(1)}, ${monthPos.arcY.toFixed(1)})`);
+                    console.warn(`  月份角度: ${(monthPos.angle * 180 / Math.PI).toFixed(1)}°`);
+                }
+            }
+            // 验证与时间线点的对齐
+            if (timelinePoints.length > 0) {
+                let closestPoint = null;
+                let minTimeDiff = Infinity;
+                for (const point of timelinePoints) {
+                    if (point.data) {
+                        const timeDiff = Math.abs(point.data.date - currentData.date);
+                        if (timeDiff < minTimeDiff) {
+                            minTimeDiff = timeDiff;
+                            closestPoint = point;
+                        }
+                    }
+                }
+                if (closestPoint && minTimeDiff < 86400000 * 3) { // 3天内
+                    const svgElement = document.getElementById('arc-timeline');
+                    const svgRect = svgElement.getBoundingClientRect();
+                    const pointScreenX = svgRect.left + closestPoint.x;
+                    const pointScreenY = svgRect.top + closestPoint.y;
+                    const pointDistance = Math.sqrt(
+                        Math.pow(moonCenterX - pointScreenX, 2) +
+                        Math.pow(moonCenterY - pointScreenY, 2)
+                    );
+                    console.log(`  最近时间线点距离: ${pointDistance.toFixed(1)}px (时间差: ${(minTimeDiff / 3600000).toFixed(1)}小时)`);
+                }
+            }
+        }
+        // 应用月亮变形效果
+        function applyMoonTransform(moonDisplay, angle, yearProgress, currentData) {
+            const moonImage = document.getElementById('moon-image');
+            // 只保留基本的位置变换，去除所有变形效果
+            moonDisplay.style.transform = 'translate(-50%, -50%)';
+            // 去除所有透明度变化，月亮始终完全不透明
+            moonImage.style.opacity = '1';
+            // 去除所有光晕和阴影效果
+            moonImage.style.boxShadow = 'none';
+            moonImage.style.filter = 'none';
+        }
+        // 添加月份指示动画
+        function addMonthIndicator(yearProgress) {
+            const monthIndex = Math.floor(yearProgress * 12);
+            const months = ['一月', '二月', '三月', '四月', '五月', '六月',
+                          '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            // 更新月进度显示
+            const progressInfo = document.querySelector('.progress-info');
+            const monthInfo = progressInfo.querySelector('.current-month') ||
+                             progressInfo.appendChild(document.createElement('div'));
+            monthInfo.className = 'current-month';
+            monthInfo.innerHTML = `<strong>当前月份:</strong> ${months[monthIndex]}`;
+            monthInfo.style.color = '#7cc0ff';
+            monthInfo.style.marginTop = '10px';
+        }
+        // 高亮当前时间线点
+        function highlightCurrentPoint() {
+            // 移除高亮效果，不再显示红球和白条
+        }
+        // 动画循环 - 支持年份循环
+        function animate() {
+            if (!isPlaying) return;
+            // 更平滑的步进 - 保持原始速度比例
+            currentIndex += Math.max(1, Math.floor(speed * 2.5)); // 恢复原始的速度倍数
+            // 检查是否到达年底，实现年份循环
+            if (currentIndex >= moonData.length) {
+                console.log('🔄 到达年底，循环回到年初...');
+                // 找到1月1日的数据点
+                const janFirstIndex = moonData.findIndex(item => {
+                    const date = item.date;
+                    return date.getMonth() === 0 && date.getDate() === 1;
+                });
+                if (janFirstIndex !== -1) {
+                    currentIndex = janFirstIndex;
+                    console.log(`✅ 找到1月1日数据点，索引: ${currentIndex}`);
+                } else {
+                    // 如果没有找到1月1日，使用第一个数据点
+                    currentIndex = 0;
+                    console.log(`⚠️ 未找到1月1日数据，使用第一个数据点，索引: ${currentIndex}`);
+                }
+            }
+            updateDisplay();
+            // 根据速度调整动画间隔 - 保持原始延迟比例
+            const delay = Math.max(10, 100 / speed); // 恢复原始的延迟计算
+            setTimeout(() => {
+                animationId = requestAnimationFrame(animate);
+            }, delay);
+        }
+        // 开始动画
+        function startAnimation() {
+            isPlaying = true;
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('pause-btn').disabled = false;
+            animate();
+        }
+        // 暂停动画
+        function pauseAnimation() {
+            isPlaying = false;
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('pause-btn').disabled = true;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        // 重置动画
+        function resetAnimation() {
+            pauseAnimation();
+            initializeMoonPosition(); // 重置到一月位置
+        }
+        // 更新速度
+        function updateSpeed() {
+            speed = parseInt(document.getElementById('speed-slider').value);
+            document.getElementById('speed-value').textContent = `${speed}x`;
+        }
+        // 初始化事件监听器
+        function initializeEventListeners() {
+            document.getElementById('start-btn').addEventListener('click', startAnimation);
+            document.getElementById('pause-btn').addEventListener('click', pauseAnimation);
+            document.getElementById('reset-btn').addEventListener('click', resetAnimation);
+            document.getElementById('speed-slider').addEventListener('input', updateSpeed);
+            document.getElementById('chart-btn').addEventListener('click', toggleChartMode);
+            document.getElementById('close-chart-btn').addEventListener('click', closeChartMode);
+            document.getElementById('chart-type-select').addEventListener('change', changeChartType);
+            document.getElementById('back-btn').addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+        }
+        // 将位置约束到弧线上
+        function constrainToArc(x, y, radius) {
+            // 计算当前点到中心的距离
+            const distance = Math.sqrt(x * x + y * y);
+            // 如果点不在圆上，将其约束到圆上
+            if (Math.abs(distance - radius) > 5) { // 允许5像素的误差
+                // 计算角度
+                let angle = Math.atan2(-y, x); // 注意Y轴方向
+                // 确保角度在有效范围内（0到π）
+                if (angle < 0) angle = 0;
+                if (angle > Math.PI) angle = Math.PI;
+                // 计算圆上的位置
+                const constrainedX = Math.cos(angle) * radius;
+                const constrainedY = -Math.sin(angle) * radius;
+                return { x: constrainedX, y: constrainedY, angle: angle };
+            }
+            return { x: x, y: y, angle: Math.atan2(-y, x) };
+        }
+        // 根据弧线位置计算对应日期
+        function getDateFromArcPosition(x, y, radius) {
+            // 计算角度（0到π，对应一月到十二月）
+            const angle = Math.atan2(-y, x);
+            const normalizedAngle = Math.max(0, Math.min(Math.PI, angle));
+            // 计算年进度（0到1）
+            const yearProgress = normalizedAngle / Math.PI;
+            // 计算对应日期
+            const yearStart = new Date(2024, 0, 1);
+            const yearEnd = new Date(2025, 0, 1);
+            const yearDuration = yearEnd - yearStart;
+            const correspondingDate = new Date(yearStart.getTime() + yearProgress * yearDuration);
+            return correspondingDate;
+        }
+        // 查找最接近的月相数据索引
+        function findClosestMoonDate(targetDate) {
+            if (moonData.length === 0) return -1;
+            let closestIndex = 0;
+            let minTimeDiff = Math.abs(moonData[0].date - targetDate);
+            for (let i = 1; i < moonData.length; i++) {
+                const timeDiff = Math.abs(moonData[i].date - targetDate);
+                if (timeDiff < minTimeDiff) {
+                    minTimeDiff = timeDiff;
+                    closestIndex = i;
+                }
+            }
+            return closestIndex;
+        }
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 页面加载完成，开始初始化...');
+            console.log('📋 检查必要的元素是否存在...');
+            // 检查关键元素
+            const elements = [
+                'arc-timeline',
+                'moon-image',
+                'moon-phase',
+                'start-btn',
+                'pause-btn',
+                'reset-btn',
+                'chart-btn',
+                'dynamic-chart',
+                'chart-type-select'
+            ];
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    console.log(`✅ 找到元素: ${id}`);
+                } else {
+                    console.error(`❌ 未找到元素: ${id}`);
+                }
+            });
+            console.log('🔄 开始加载数据...');
+            loadMoonData();
+            console.log('🔄 初始化事件监听器...');
+            initializeEventListeners();
+            console.log('🎉 初始化完成');
+
+            // 初始化模态框事件
+            initializeModalEvents();
+
+            // 添加测试函数 - 手动测试月亮位置
+            window.testMoonPosition = function() {
+                if (moonData.length > 0) {
+                    console.log('🧪 测试月亮位置更新...');
+                    const testData = moonData[Math.floor(moonData.length / 2)]; // 使用年中数据
+                    updateMoonPosition(testData);
+                    console.log('✅ 测试完成，检查控制台输出');
+                } else {
+                    console.error('❌ 没有测试数据');
+                }
+            };
+            // 添加SVG时间线对齐测试函数
+            window.testTimelineAlignment = function() {
+                console.log('🧪 开始测试月亮与月份标签对齐...');
+                if (moonData.length === 0 || !window.monthPositions || window.monthPositions.length === 0) {
+                    console.error('❌ 数据或月份位置尚未准备好');
+                    return;
+                }
+                // 测试每个月份的第一天和月中
+                const testDates = [];
+                for (let month = 0; month < 12; month++) {
+                    // 测试月初（1号）
+                    testDates.push(new Date(2024, month, 1));
+                    // 测试月中（15号）
+                    const daysInMonth = new Date(2024, month + 1, 0).getDate();
+                    if (daysInMonth >= 15) {
+                        testDates.push(new Date(2024, month, 15));
+                    }
+                }
+                testDates.forEach((testDate, index) => {
+                    console.log(`\n📍 测试点 ${index + 1}: ${testDate.toLocaleDateString('zh-CN')} (${window.monthPositions[testDate.getMonth()]?.month})`);
+                    // 找到对应的月相数据
+                    const testData = moonData.find(d => {
+                        const dDate = d.date;
+                        return dDate.getFullYear() === testDate.getFullYear() &&
+                               dDate.getMonth() === testDate.getMonth() &&
+                               Math.abs(dDate.getDate() - testDate.getDate()) <= 2; // 允许2天误差
+                    });
+                    if (testData) {
+                        console.log(`  找到数据: ${testData.date.toLocaleDateString('zh-CN')}, 月龄: ${testData.age.toFixed(1)}天`);
+                        // 更新月亮位置
+                        updateMoonPosition(testData);
+                        // 等待一下让DOM更新
+                        setTimeout(() => {
+                            verifyMoonAlignment(testData);
+                        }, 100);
+                    } else {
+                        console.log(`  ⚠️ 未找到对应数据`);
+                    }
+                });
+                console.log('\n✅ 月份标签对齐测试完成');
+                console.log('\n📊 测试总结:');
+                console.log('- 月亮应该出现在对应月份标签附近的弧线上');
+                console.log('- 月初（1号）应该靠近月份标签位置');
+                console.log('- 月中应该在两个月份标签之间');
+                console.log('- 检查控制台输出中的"距离"信息来验证对齐效果');
+            };
+            // 添加月份对齐快速测试函数
+            window.testMonthAlignment = function() {
+                console.log('🧪 快速测试关键月份对齐...');
+                if (!window.monthPositions || window.monthPositions.length === 0) {
+                    console.error('❌ 月份位置尚未准备好');
+                    return;
+                }
+                // 测试几个关键月份
+                const keyMonths = [
+                    { month: 0, day: 1, name: '一月' },   // 年初
+                    { month: 3, day: 1, name: '四月' },   // 季中
+                    { month: 6, day: 1, name: '七月' },   // 年中
+                    { month: 9, day: 1, name: '十月' },   // 季末
+                    { month: 11, day: 31, name: '十二月' } // 年末
+                ];
+                keyMonths.forEach((test, index) => {
+                    const testDate = new Date(2024, test.month, test.day);
+                    console.log(`\n🎯 测试 ${test.name}: ${testDate.toLocaleDateString('zh-CN')}`);
+                    // 找到对应数据
+                    const testData = moonData.find(d => {
+                        const dDate = d.date;
+                        return dDate.getFullYear() === testDate.getFullYear() &&
+                               dDate.getMonth() === testDate.getMonth() &&
+                               Math.abs(dDate.getDate() - testDate.getDate()) <= 3;
+                    });
+                    if (testData) {
+                        updateMoonPosition(testData);
+                        setTimeout(() => {
+                            verifyMoonAlignment(testData);
+                        }, 100);
+                    } else {
+                        console.log(`  ⚠️ 未找到${test.name}的数据`);
+                    }
+                });
+            };
+            // 添加年份循环测试函数
+            window.testYearCycle = function() {
+                console.log('🧪 测试年份循环功能...');
+                if (moonData.length === 0) {
+                    console.error('❌ 月相数据尚未加载');
+                    return;
+                }
+                // 找到年末数据（12月下旬）
+                const yearEndData = moonData.find(item => {
+                    const date = item.date;
+                    return date.getMonth() === 11 && date.getDate() >= 28; // 12月28日后
+                });
+                // 找到年初数据（1月上旬）
+                const yearStartData = moonData.find(item => {
+                    const date = item.date;
+                    return date.getMonth() === 0 && date.getDate() <= 7; // 1月7日前
+                });
+                if (yearEndData && yearStartData) {
+                    console.log('\n📍 测试年末到年初的循环:');
+                    console.log(`  年末数据: ${yearEndData.date.toLocaleDateString('zh-CN')}`);
+                    console.log(`  年初数据: ${yearStartData.date.toLocaleDateString('zh-CN')}`);
+                    // 先显示年末位置
+                    updateMoonPosition(yearEndData);
+                    console.log('✓ 月亮已移动到年末位置');
+                    // 2秒后跳转到年初
+                    setTimeout(() => {
+                        updateMoonPosition(yearStartData);
+                        console.log('✓ 月亮已跳转到年初位置');
+                        console.log('✅ 年份循环测试完成！');
+                        console.log('\n📋 实际动画中，这个跳转会在到达12月31日后自动发生');
+                        console.log('🔄 速度上限改为3x，保持原始速度比例');
+                    }, 2000);
+                } else {
+                    console.error('❌ 未找到合适的年末或年初数据');
+                }
+            };
+            // 5秒后自动测试一次基本位置
+            setTimeout(() => {
+                if (window.testMoonPosition) {
+                    window.testMoonPosition();
+                }
+            }, 5000);
+            // 10秒后测试关键月份对齐
+            setTimeout(() => {
+                if (window.testMonthAlignment) {
+                    window.testMonthAlignment();
+                }
+            }, 10000);
+            // 15秒后测试年份循环功能
+            setTimeout(() => {
+                if (window.testYearCycle) {
+                    window.testYearCycle();
+                }
+            }, 15000);
+            // 20秒后测试完整的月份对齐
+            setTimeout(() => {
+                if (window.testTimelineAlignment) {
+                    window.testTimelineAlignment();
+                }
+            }, 20000);
+                    });
+        console.log('月相动画系统已初始化 - 使用正确的月相判断逻辑');
+        console.log('月相周期: 新月 → 娥眉月 → 上弦月 → 盈凸月 → 满月 → 亏凸月 → 下弦月 → 残月 → 新月');
+        console.log('2024年1月1日: 月龄19.02天 → 亏凸月 (满月后)');
+
+        // ==================== 模态框功能函数 ====================
+
+        // 初始化模态框事件
+        function initializeModalEvents() {
+            const modal = document.getElementById('detail-modal');
+            const closeBtn = document.getElementById('close-modal');
+
+            // 关闭按钮事件
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeModal);
+            }
+
+            // 点击背景关闭模态框
+            if (modal) {
+                modal.addEventListener('click', function(event) {
+                    if (event.target === modal) {
+                        closeModal();
+                    }
+                });
+            }
+
+            // ESC键关闭模态框
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeModal();
+                }
+            });
+        }
+
+        // 显示详细信息模态框
+        function showDetailModal(data) {
+            const modal = document.getElementById('detail-modal');
+            const modalBody = document.getElementById('modal-body');
+
+            if (!modal || !modalBody) return;
+
+            // 获取原始数据
+            const originalData = data.originalData || {};
+            const j2000 = originalData.j2000 || {};
+            const subsolar = originalData.subsolar || {};
+            const subearth = originalData.subearth || {};
+
+            // 生成详细信息的HTML
+            const detailHTML = `
+                <div style="display: grid; gap: 24px;">
+                    <!-- 基本信息 -->
+                    <div class="info-section">
+                        <h4 style="color: #7cc0ff; margin-bottom: 16px; font-size: 18px;">基本信息</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">观测时间</span>
+                                <span class="info-value">${data.date.toLocaleDateString('zh-CN')} ${data.date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} UT</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">月相</span>
+                                <span class="info-value">${getPhaseName(data.phase, data.age)}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">照明度</span>
+                                <span class="info-value">${data.phase.toFixed(2)}%</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">月龄</span>
+                                <span class="info-value">${data.age.toFixed(2)} 天</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 物理参数 -->
+                    <div class="info-section">
+                        <h4 style="color: #7cc0ff; margin-bottom: 16px; font-size: 18px;">物理参数</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">地月距离</span>
+                                <span class="info-value">${(originalData.distance || 0).toLocaleString()} km</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">视直径</span>
+                                <span class="info-value">${(originalData.diameter || 0).toFixed(2)} 角秒</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">${getChartLabel(currentChartType)}</span>
+                                <span class="info-value">${data.value.toFixed(2)} ${getChartUnit(currentChartType)}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">位置角</span>
+                                <span class="info-value">${(originalData.posangle || 0).toFixed(2)}°</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 太阳和地球下点 -->
+                    <div class="info-section">
+                        <h4 style="color: #7cc0ff; margin-bottom: 16px; font-size: 18px;">太阳下点坐标</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">经度</span>
+                                <span class="info-value">${(subsolar.lon || 0).toFixed(2)}°</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">纬度</span>
+                                <span class="info-value">${(subsolar.lat || 0).toFixed(2)}°</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-section">
+                        <h4 style="color: #7cc0ff; margin-bottom: 16px; font-size: 18px;">地球下点坐标</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">经度</span>
+                                <span class="info-value">${(subearth.lon || 0).toFixed(2)}°</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">纬度</span>
+                                <span class="info-value">${(subearth.lat || 0).toFixed(2)}°</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modalBody.innerHTML = detailHTML;
+            modal.style.display = 'flex';
+
+            console.log('显示详细信息模态框:', data.date.toLocaleDateString('zh-CN'));
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            const modal = document.getElementById('detail-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // ==================== 图表功能函数 ====================
+        // 切换图表模式 - 全屏显示
+        function toggleChartMode() {
+            isChartMode = !isChartMode;
+            const chartSection = document.getElementById('chart-section');
+            const animationContainer = document.querySelector('.animation-container');
+            const chartBtn = document.getElementById('chart-btn');
+            const arcTimeline = document.getElementById('arc-timeline');
+            if (isChartMode) {
+                console.log('📊 开启图表模式...');
+                // 不自动开始动画，让用户手动控制
+                // 检查数据是否已加载
+                if (moonData.length === 0) {
+                    console.log('⚠️ 月相数据尚未加载完成，等待数据加载...');
+                    // 显示加载提示
+                    const chartContainer = document.getElementById('dynamic-chart');
+                    if (chartContainer) {
+                        chartContainer.innerHTML = '<div style="color: #7cc0ff; text-align: center; padding: 40px; font-size: 16px;">📊 正在加载数据，请稍候...</div>';
+                    }
+                    // 隐藏弧线时间线
+                    if (arcTimeline) {
+                        arcTimeline.style.display = 'none';
+                    }
+                    // 显示图表区域，但显示加载中
+                    chartSection.classList.add('show');
+                    animationContainer.classList.add('chart-mode');
+                    chartBtn.classList.add('chart-active');
+                    // 等待数据加载完成后重新初始化图表
+                    setTimeout(() => {
+                        if (moonData.length > 0) {
+                            initializeChart();
+                        } else {
+                            const chartContainer = document.getElementById('dynamic-chart');
+                            if (chartContainer) {
+                                chartContainer.innerHTML = '<div style="color: #7cc0ff; text-align: center; padding: 40px; font-size: 16px;">数据加载失败，请刷新页面重试</div>';
+                            }
+                        }
+                    }, 2000);
+                    console.log('📊 图表模式已开启（等待数据加载）');
+                    return;
+                }
+                // 隐藏弧线时间线
+                if (arcTimeline) {
+                    arcTimeline.style.display = 'none';
+                }
+                // 显示全屏图表，淡化动画容器
+                chartSection.classList.add('show');
+                animationContainer.classList.add('chart-mode');
+                chartBtn.classList.add('chart-active');
+                // 初始化图表
+                setTimeout(() => {
+                    initializeChart();
+                }, 300); // 等待淡入动画完成后再初始化图表
+                console.log('📊 全屏图表模式已开启，可手动控制动画');
+            } else {
+                closeChartMode();
+            }
+        }
+        // 关闭图表模式
+        function closeChartMode() {
+            isChartMode = false;
+            const chartSection = document.getElementById('chart-section');
+            const animationContainer = document.querySelector('.animation-container');
+            const chartBtn = document.getElementById('chart-btn');
+            const arcTimeline = document.getElementById('arc-timeline');
+            chartSection.classList.remove('show');
+            animationContainer.classList.remove('chart-mode');
+            chartBtn.classList.remove('chart-active');
+            // 恢复弧线时间线显示
+            if (arcTimeline) {
+                arcTimeline.style.display = 'block';
+            }
+            console.log('📊 全屏图表模式已关闭');
+        }
+        // 切换图表类型 - 完整功能
+        function changeChartType() {
+            currentChartType = document.getElementById('chart-type-select').value;
+            console.log('📊 切换图表类型:', currentChartType);
+
+            // 更新图表标题
+            const chartTitleElement = document.getElementById('chart-title');
+            if (chartTitleElement) {
+                chartTitleElement.textContent = getChartTitle(currentChartType);
+                console.log('✅ 图表标题已更新:', getChartTitle(currentChartType));
+            }
+
+            if (isChartMode && chartData.length > 0) {
+                try {
+                    // 重新准备数据（不同图表类型可能需要不同的数据范围）
+                    prepareChartData();
+                    // 重新创建图表
+                    createSimpleChart();
+                    console.log('✅ 图表类型切换成功:', {
+                        type: currentChartType,
+                        dataPoints: chartData.length,
+                        title: getChartTitle(currentChartType)
+                    });
+                } catch (error) {
+                    console.error('❌ 图表类型切换失败:', error);
+                    // 显示错误信息
+                    const chartContainer = document.getElementById('dynamic-chart');
+                    chartContainer.innerHTML = `
+                        <div style="color: #ff6b6b; text-align: center; padding: 40px; font-size: 16px;">
+                            <div style="margin-bottom: 20px;">❌ 图表切换失败</div>
+                            <div style="font-size: 14px; opacity: 0.8;">错误信息: ${error.message}</div>
+                            <button onclick="changeChartType()" style="margin-top: 20px; padding: 8px 16px; background: #ff6b6b; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                重试
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        }
+        // 初始化图表 - 支持多种图表类型
+        function initializeChart() {
+            const chartContainer = document.getElementById('dynamic-chart');
+            console.log('🔍 调试：图表容器元素:', chartContainer);
+            console.log('🔍 容器尺寸:', {
+                width: chartContainer ? chartContainer.clientWidth : 'null',
+                height: chartContainer ? chartContainer.clientHeight : 'null'
+            });
+            // 检查容器是否有效
+            if (!chartContainer) {
+                console.error('❌ 图表容器元素未找到！');
+                return;
+            }
+            // 清空现有图表
+            chartContainer.innerHTML = '';
+            // 检查数据是否准备成功
+            if (moonData.length === 0 || currentIndex >= moonData.length) {
+                chartContainer.innerHTML = '<div style="color: white; text-align: center; padding: 20px;">暂无月相数据</div>';
+                console.log('❌ 月相数据为空');
+                return;
+            }
+            console.log('📊 准备绘制图表，月相数据总数:', moonData.length);
+            console.log('📊 当前索引:', currentIndex);
+            console.log('📊 当前图表类型:', currentChartType);
+            // 显示加载中状态
+            chartContainer.innerHTML = '<div style="color: white; text-align: center; padding: 20px;">📊 正在生成图表...</div>';
+            // 延迟创建图表，确保容器渲染完成
+            setTimeout(() => {
+                try {
+                    // 清空加载提示
+                    chartContainer.innerHTML = '';
+                    switch (currentChartType) {
+                        case 'distribution':
+                            createDistributionChart();
+                            break;
+                        case 'relationship':
+                            createRelationshipChart();
+                            break;
+                        default:
+                            // 为普通图表准备数据
+                            prepareChartData();
+                            createSimpleChart();
+                            break;
+                    }
+                    console.log('✅ 图表创建成功');
+                } catch (error) {
+                    console.error('❌ 图表创建失败:', error);
+                    chartContainer.innerHTML = '<div style="color: #7cc0ff; text-align: center; padding: 20px;">图表创建失败，请重试</div>';
+                }
+            }, 100);
+        }
+        // 全屏图表创建函数 - 美化版本
+        function createSimpleChart() {
+            const chartContainer = document.getElementById('dynamic-chart');
+            console.log('🎨 开始创建美化版图表...');
+            // 检查D3.js是否可用
+            if (typeof d3 === 'undefined') {
+                throw new Error('D3.js未加载');
+            }
+            // 获取当前日期信息
+            if (moonData.length === 0 || currentIndex >= moonData.length) {
+                throw new Error('月相数据不可用');
+            }
+            const currentDataPoint = moonData[currentIndex];
+            const currentMonth = currentDataPoint.date.getMonth();
+            const currentYear = currentDataPoint.date.getFullYear();
+            // 获取容器的实际尺寸，使用较小的固定尺寸优化性能
+            const containerRect = chartContainer.getBoundingClientRect();
+            const width = Math.max(containerRect.width - 40, 600);
+            const height = Math.max(containerRect.height - 40, 350);
+            console.log('🎨 创建美化图表，尺寸:', { width, height });
+            console.log('📊 当前数据点:', { month: currentMonth + 1, year: currentYear, type: currentChartType });
+            // 清空容器并添加加载动画
+            chartContainer.innerHTML = '';
+            // 创建SVG
+            const svg = d3.select(chartContainer)
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height)
+                .style('background', 'rgba(255, 255, 255, 0.01)')
+                .style('border-radius', '12px');
+            // 设置更大的边距
+            const margin = { top: 50, right: 80, bottom: 90, left: 90 };
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+            // 创建主图组
+            const g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            // 添加渐变背景
+            const gradient = svg.append('defs')
+                .append('linearGradient')
+                .attr('id', 'bg-gradient')
+                .attr('x1', '0%')
+                .attr('y1', '0%')
+                .attr('x2', '0%')
+                .attr('y2', '100%');
+            gradient.append('stop')
+                .attr('offset', '0%')
+                .style('stop-color', '#1a3a52')
+                .style('stop-opacity', 0.3);
+            gradient.append('stop')
+                .attr('offset', '100%')
+                .style('stop-color', '#0f1c2b')
+                .style('stop-opacity', 0.5);
+            // 添加背景
+            g.append('rect')
+                .attr('width', chartWidth)
+                .attr('height', chartHeight)
+                .attr('fill', 'url(#bg-gradient)')
+                .attr('rx', 8);
+            // 设置比例尺
+            const xScale = d3.scaleTime()
+                .domain(d3.extent(chartData, d => d.date))
+                .range([0, chartWidth]);
+            const yScale = d3.scaleLinear()
+                .domain(d3.extent(chartData, d => d.value))
+                .nice()
+                .range([chartHeight, 0]);
+            // 添加网格线 - 美化版本
+            const gridGroup = g.append('g').attr('class', 'grid-group');
+            // 水平网格线 - 减少数量以优化性能
+            gridGroup.append('g')
+                .attr('class', 'grid-horizontal')
+                .selectAll('line')
+                .data(yScale.ticks(5))
+                .enter().append('line')
+                .attr('x1', 0)
+                .attr('x2', chartWidth)
+                .attr('y1', d => yScale(d))
+                .attr('y2', d => yScale(d))
+                .style('stroke', 'rgba(255, 255, 255, 0.8)')
+                .style('stroke-width', 1)
+                .style('stroke-dasharray', '4,4')
+                .style('opacity', 0.6);
+            // 垂直网格线 - 按月份显示
+            const monthTicks = d3.timeMonth.every(1).range(
+                d3.timeMonth.floor(xScale.domain()[0]),
+                d3.timeMonth.ceil(xScale.domain()[1])
+            );
+            gridGroup.append('g')
+                .attr('class', 'grid-vertical')
+                .selectAll('line')
+                .data(monthTicks)
+                .enter().append('line')
+                .attr('x1', d => xScale(d))
+                .attr('x2', d => xScale(d))
+                .attr('y1', 0)
+                .attr('y2', chartHeight)
+                .style('stroke', 'rgba(255, 255, 255, 0.8)')
+                .style('stroke-width', 1)
+                .style('stroke-dasharray', '4,4')
+                .style('opacity', 0.6);
+            // 添加坐标轴 - 显示12个月份
+            const xAxis = g.append('g')
+                .attr('class', 'x-axis')
+                .attr('transform', `translate(0,${chartHeight})`)
+                .call(d3.axisBottom(xScale)
+                    .tickFormat(d3.timeFormat('%m月'))
+                    .ticks(d3.timeMonth.every(1))); // 每月一个刻度
+            xAxis.selectAll('text')
+                .style('fill', '#7cc0ff')
+                .style('font-size', '13px')
+                .style('font-weight', '500');
+            xAxis.selectAll('line')
+                .style('stroke', '#ffffff')
+                .style('opacity', 0.6);
+            xAxis.selectAll('path')
+                .style('stroke', '#ffffff')
+                .style('opacity', 0.8);
+            const yAxis = g.append('g')
+                .attr('class', 'y-axis')
+                .call(d3.axisLeft(yScale)
+                    .ticks(5));
+            yAxis.selectAll('text')
+                .style('fill', '#7cc0ff')
+                .style('font-size', '13px')
+                .style('font-weight', '500');
+            yAxis.selectAll('line')
+                .style('stroke', '#ffffff')
+                .style('opacity', 0.6);
+            yAxis.selectAll('path')
+                .style('stroke', '#ffffff')
+                .style('opacity', 0.8);
+            // 添加坐标轴标签
+            g.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', 0 - margin.left + 20)
+                .attr('x', 0 - (chartHeight / 2))
+                .attr('dy', '1em')
+                .style('text-anchor', 'middle')
+                .style('fill', 'white')
+                .style('font-size', '14px')
+                .text(getChartAxisLabel(currentChartType));
+            g.append('text')
+                .attr('transform', `translate(${chartWidth / 2}, ${chartHeight + margin.bottom - 10})`)
+                .style('text-anchor', 'middle')
+                .style('fill', 'white')
+                .style('font-size', '14px')
+                .text('日期 (月/日)');
+            // 添加线条渐变
+            const lineGradient = svg.append('defs')
+                .append('linearGradient')
+                .attr('id', 'line-gradient')
+                .attr('x1', '0%')
+                .attr('y1', '0%')
+                .attr('x2', '100%')
+                .attr('y2', '0%');
+            lineGradient.append('stop')
+                .attr('offset', '0%')
+                .style('stop-color', '#00c9ff')
+                .style('stop-opacity', 0.8);
+            lineGradient.append('stop')
+                .attr('offset', '50%')
+                .style('stop-color', '#7cc0ff')
+                .style('stop-opacity', 1);
+            lineGradient.append('stop')
+                .attr('offset', '100%')
+                .style('stop-color', '#00c9ff')
+                .style('stop-opacity', 0.8);
+            // 添加区域渐变
+            const areaGradient = svg.append('defs')
+                .append('linearGradient')
+                .attr('id', 'area-gradient')
+                .attr('x1', '0%')
+                .attr('y1', '0%')
+                .attr('x2', '0%')
+                .attr('y2', '100%');
+            areaGradient.append('stop')
+                .attr('offset', '0%')
+                .style('stop-color', '#7cc0ff')
+                .style('stop-opacity', 0.3);
+            areaGradient.append('stop')
+                .attr('offset', '100%')
+                .style('stop-color', '#7cc0ff')
+                .style('stop-opacity', 0.05);
+            // 创建线条生成器
+            const line = d3.line()
+                .x(d => xScale(d.date))
+                .y(d => yScale(d.value))
+                .curve(d3.curveMonotoneX);
+            // 创建区域生成器
+            const area = d3.area()
+                .x(d => xScale(d.date))
+                .y0(chartHeight)
+                .y1(d => yScale(d.value))
+                .curve(d3.curveMonotoneX);
+            // 添加区域
+            const areaPath = g.append('path')
+                .datum(chartData)
+                .attr('fill', 'url(#area-gradient)')
+                .attr('d', area)
+                .style('opacity', 0);
+            // 区域动画
+            areaPath.transition()
+                .duration(1500)
+                .ease(d3.easeLinear)
+                .style('opacity', 1);
+            // 添加线条
+            const linePath = g.append('path')
+                .datum(chartData)
+                .attr('fill', 'none')
+                .attr('stroke', 'url(#line-gradient)')
+                .attr('stroke-width', 3)
+                .attr('stroke-linecap', 'round')
+                .attr('stroke-linejoin', 'round')
+                .style('opacity', 0.8)
+                .attr('d', line);
+            // 线条动画
+            const totalLength = linePath.node().getTotalLength();
+            linePath
+                .attr('stroke-dasharray', totalLength + ' ' + totalLength)
+                .attr('stroke-dashoffset', totalLength)
+                .transition()
+                .duration(2000)
+                .ease(d3.easeLinear)
+                .attr('stroke-dashoffset', 0);
+            // 添加数据点 - 美化版本
+            const dots = g.selectAll('.dot')
+                .data(chartData)
+                .enter().append('circle')
+                .attr('class', 'dot')
+                .attr('cx', d => xScale(d.date))
+                .attr('cy', d => yScale(d.value))
+                .attr('r', 0)
+                .attr('fill', '#7cc0ff')
+                .style('opacity', 0.7)
+                .style('cursor', 'pointer')
+                .on('mouseover', function(event, d) {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .ease(d3.easeElastic)
+                        .attr('r', 10)
+                        .style('opacity', 1)
+                        .style('fill', '#ffffff')
+                        .style('stroke', '#7cc0ff')
+                        .style('stroke-width', 2);
+
+                    // 显示增强的工具提示
+                    const tooltip = d3.select('body').append('div')
+                        .attr('class', 'chart-tooltip')
+                        .style('position', 'absolute')
+                        .style('background', 'linear-gradient(135deg, rgba(15, 28, 43, 0.95), rgba(23, 38, 58, 0.95))')
+                        .style('color', '#f4f7fb')
+                        .style('padding', '16px')
+                        .style('border-radius', '12px')
+                        .style('font-size', '13px')
+                        .style('font-family', '"Segoe UI", "Microsoft YaHei", sans-serif')
+                        .style('pointer-events', 'none')
+                        .style('z-index', 10000)
+                        .style('border', '1px solid rgba(124, 192, 255, 0.3)')
+                        .style('box-shadow', '0 8px 32px rgba(0, 0, 0, 0.4)')
+                        .style('min-width', '280px');
+
+                    // 获取原始数据的完整信息
+                    const originalData = d.originalData || {};
+                    const j2000 = originalData.j2000 || {};
+                    const subsolar = originalData.subsolar || {};
+                    const subearth = originalData.subearth || {};
+
+                    tooltip.html(`
+                        <div style="border-bottom: 1px solid rgba(124, 192, 255, 0.3); padding-bottom: 8px; margin-bottom: 12px;">
+                            <div style="font-size: 16px; font-weight: 600; color: #7cc0ff; margin-bottom: 4px;">
+                                ${d.date.toLocaleDateString('zh-CN')}
+                            </div>
+                            <div style="font-size: 12px; color: #a0a0a0;">
+                                ${d.date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} UT
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-weight: 600; color: #7cc0ff; margin-bottom: 6px;">月相信息</div>
+                            <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12px;">
+                                <span style="color: #a0a0a0;">月相:</span><span>${getPhaseName(d.phase, d.age)}</span>
+                                <span style="color: #a0a0a0;">照明度:</span><span>${d.phase.toFixed(1)}%</span>
+                                <span style="color: #a0a0a0;">月龄:</span><span>${d.age.toFixed(1)} 天</span>
+                                <span style="color: #a0a0a0;">地月距离:</span><span>${(originalData.distance || 0).toLocaleString()} km</span>
+                                <span style="color: #a0a0a0;">视直径:</span><span>${(originalData.diameter || 0).toFixed(1)}"</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-weight: 600; color: #7cc0ff; margin-bottom: 6px;">${getChartLabel(currentChartType)}</div>
+                            <div style="font-size: 14px; font-weight: 500; color: #ffffff;">
+                                ${d.value.toFixed(2)} ${getChartUnit(currentChartType)}
+                            </div>
+                        </div>
+
+                            `)
+                    .style('left', (event.pageX + 15) + 'px')
+                    .style('top', (event.pageY - 15) + 'px');
+                })
+                .on('mouseout', function() {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .ease(d3.easeElastic)
+                        .attr('r', d => d.isCurrentMonth ? 6 : 5)
+                        .style('opacity', d => d.isCurrentMonth ? 1 : 0.7)
+                        .style('fill', '#7cc0ff')
+                        .style('stroke', 'none');
+                    d3.selectAll('.chart-tooltip').remove();
+                });
+            // 数据点动画
+            dots.transition()
+                .duration(800)
+                .delay((d, i) => i * 30)
+                .attr('r', d => d.isCurrentMonth ? 6 : 5);
+            // 添加月份分隔线和标签
+            const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月',
+                               '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            // 找到所有月份边界
+            const monthBoundaries = {};
+            chartData.forEach(d => {
+                const monthKey = `${d.date.getFullYear()}-${d.date.getMonth()}`;
+                if (!monthBoundaries[monthKey]) {
+                    monthBoundaries[monthKey] = {
+                        firstDate: d.date,
+                        monthDiff: d.monthDiff,
+                        isCurrentMonth: d.isCurrentMonth
+                    };
+                }
+            });
+            // 为每个月份边界添加分隔线
+            Object.keys(monthBoundaries).forEach((monthKey, index) => {
+                const boundary = monthBoundaries[monthKey];
+                if (!boundary.isCurrentMonth) { // 非当前月份的分隔线
+                    g.append('line')
+                        .attr('class', 'month-boundary')
+                        .attr('x1', xScale(boundary.firstDate))
+                        .attr('x2', xScale(boundary.firstDate))
+                        .attr('y1', 0)
+                        .attr('y2', chartHeight)
+                        .attr('stroke', 'rgba(255, 255, 255, 0.9)')
+                        .attr('stroke-dasharray', '6,3')
+                        .attr('stroke-width', 1.5);
+                    // 添加月份标签
+                    const monthName = monthNames[boundary.firstDate.getMonth()];
+                    const year = boundary.firstDate.getFullYear();
+                    g.append('text')
+                        .attr('class', 'month-label')
+                        .attr('x', xScale(boundary.firstDate))
+                        .attr('y', -5)
+                        .attr('text-anchor', 'middle')
+                        .style('fill', 'rgba(255, 255, 255, 0.7)')
+                        .style('font-size', '11px')
+                        .style('font-weight', 'normal')
+                        .text(`${year}年${monthName}`);
+                }
+            });
+            // 添加标题 - 美化版本
+            const chartTitle = getChartTitle(currentChartType);
+            // 添加标题背景已移除
+            // 标题文字已移除
+            // 添加装饰线条
+            svg.append('line')
+                .attr('x1', width / 2 - 100)
+                .attr('x2', width / 2 - 20)
+                .attr('y1', 32)
+                .attr('y2', 32)
+                .style('stroke', '#ffffff')
+                .style('stroke-width', 2)
+                .style('opacity', 0.6);
+            svg.append('line')
+                .attr('x1', width / 2 + 20)
+                .attr('x2', width / 2 + 100)
+                .attr('y1', 32)
+                .attr('y2', 32)
+                .style('stroke', '#ffffff')
+                .style('stroke-width', 2)
+                .style('opacity', 0.6);
+
+            console.log('✅ 美化版图表创建完成');
+        }
+        // 创建月相分布统计图表 - 美化版本
+        function createDistributionChart() {
+            const chartContainer = document.getElementById('dynamic-chart');
+            // 获取容器的实际尺寸，使用较小尺寸优化性能
+            const containerRect = chartContainer.getBoundingClientRect();
+            const width = Math.max(containerRect.width - 40, 600);
+            const height = Math.max(containerRect.height - 40, 350);
+            console.log('🎨 创建美化版月相分布统计图表，尺寸:', { width, height });
+            // 清空容器
+            chartContainer.innerHTML = '';
+            // 创建SVG
+            const svg = d3.select(chartContainer)
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height)
+                .style('background', 'rgba(255, 255, 255, 0.01)')
+                .style('border-radius', '12px');
+            // 设置边距
+            const margin = { top: 60, right: 80, bottom: 100, left: 90 };
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+            // 创建主图组
+            const g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            // 添加渐变背景
+            const gradient = svg.append('defs')
+                .append('linearGradient')
+                .attr('id', 'bg-gradient-dist')
+                .attr('x1', '0%')
+                .attr('y1', '0%')
+                .attr('x2', '0%')
+                .attr('y2', '100%');
+            gradient.append('stop')
+                .attr('offset', '0%')
+                .style('stop-color', '#1a3a52')
+                .style('stop-opacity', 0.3);
+            gradient.append('stop')
+                .attr('offset', '100%')
+                .style('stop-color', '#0f1c2b')
+                .style('stop-opacity', 0.5);
+            // 添加背景
+            g.append('rect')
+                .attr('width', chartWidth)
+                .attr('height', chartHeight)
+                .attr('fill', 'url(#bg-gradient-dist)')
+                .attr('rx', 12)
+                .style('opacity', 0.9);
+            // 统计各月相出现的次数
+            const phaseCounts = {};
+            const phaseNames = ['新月', '娥眉月', '上弦月', '盈凸月', '满月', '亏凸月', '下弦月', '残月'];
+            const phaseColors = ['#7cc0ff', '#81c784', '#ffb74d', '#ff9800', '#ffa726', '#ffcc80', '#9575cd', '#7986cb'];
+            // 获取当前时间段的数据
+            const currentDataPoint = moonData[currentIndex];
+            const currentMonth = currentDataPoint.date.getMonth();
+            const currentYear = currentDataPoint.date.getFullYear();
+            const dataStartDate = new Date(currentYear, currentMonth - 1, 16);
+            const dataEndDate = new Date(currentYear, currentMonth + 2, 15);
+            // 统计月相分布
+            for (let i = 0; i < moonData.length; i++) {
+                const dataPoint = moonData[i];
+                const dataDate = dataPoint.date;
+                if (dataDate >= dataStartDate && dataDate <= dataEndDate) {
+                    const phaseName = getPhaseName(dataPoint.phase, dataPoint.age);
+                    phaseCounts[phaseName] = (phaseCounts[phaseName] || 0) + 1;
+                }
+            }
+            // 转换为图表数据格式
+            const distributionData = phaseNames.map((phaseName, index) => ({
+                phase: phaseName,
+                count: phaseCounts[phaseName] || 0,
+                percentage: ((phaseCounts[phaseName] || 0) / Object.values(phaseCounts).reduce((a, b) => a + b, 0)) * 100,
+                color: phaseColors[index]
+            }));
+            console.log('📊 月相分布数据:', distributionData);
+            // 设置比例尺
+            const xScale = d3.scaleBand()
+                .domain(distributionData.map(d => d.phase))
+                .range([0, chartWidth])
+                .padding(0.15);
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(distributionData, d => d.count)])
+                .nice()
+                .range([chartHeight, 0]);
+            // 添加网格线
+            const gridGroup = g.append('g').attr('class', 'grid-group');
+            gridGroup.append('g')
+                .selectAll('line')
+                .data(yScale.ticks(6))
+                .enter().append('line')
+                .attr('x1', 0)
+                .attr('x2', chartWidth)
+                .attr('y1', d => yScale(d))
+                .attr('y2', d => yScale(d))
+                .style('stroke', 'rgba(255, 255, 255, 0.8)')
+                .style('stroke-width', 1)
+                .style('stroke-dasharray', '4,4')
+                .style('opacity', 0.6);
+            // 添加坐标轴 - 美化版本
+            const yAxis = g.append('g')
+                .call(d3.axisLeft(yScale).ticks(6));
+            yAxis.selectAll('text')
+                .style('fill', '#7cc0ff')
+                .style('font-size', '13px')
+                .style('font-weight', '500');
+            const xAxis = g.append('g')
+                .attr('transform', `translate(0,${chartHeight})`)
+                .call(d3.axisBottom(xScale));
+            xAxis.selectAll('text')
+                .style('fill', '#7cc0ff')
+                .style('font-size', '13px')
+                .style('font-weight', '500');
+            // 添加柱状图 - 美化版本
+            const bars = g.selectAll('.bar')
+                .data(distributionData)
+                .enter().append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => xScale(d.phase))
+                .attr('width', xScale.bandwidth())
+                .attr('y', chartHeight)
+                .attr('height', 0)
+                .attr('fill', d => d.color)
+                .attr('rx', 4)
+                .style('opacity', 0.8)
+                .style('cursor', 'pointer')
+                .on('mouseover', function(event, d) {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr('transform', 'translateY(-2)')
+                        .style('opacity', 1);
+                    // 显示工具提示
+                    const tooltip = d3.select('body').append('div')
+                        .attr('class', 'chart-tooltip')
+                        .style('position', 'absolute')
+                        .style('background', 'rgba(0, 0, 0, 0.8)')
+                        .style('color', 'white')
+                        .style('padding', '10px')
+                        .style('border-radius', '4px')
+                        .style('font-size', '12px')
+                        .style('pointer-events', 'none')
+                        .style('z-index', 10000);
+                    tooltip.html(`
+                        <div style="margin-bottom: 4px; font-weight: 600; color: ${d.color};">
+                            ${d.phase}
+                        </div>
+                        <div style="margin-bottom: 3px;">
+                            次数: ${d.count}
+                        </div>
+                        <div>
+                            占比: ${d.percentage.toFixed(1)}%
+                        </div>
+                    `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 10) + 'px');
+                })
+                .on('mouseout', function() {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr('transform', 'translateY(0)')
+                        .style('opacity', 0.8);
+                    d3.selectAll('.chart-tooltip').remove();
+                })
+                            // 柱状图动画
+            bars.transition()
+                .duration(1000)
+                .delay((d, i) => i * 120)
+                .ease(d3.easeBackOut)
+                .attr('y', d => yScale(d.count))
+                .attr('height', d => chartHeight - yScale(d.count));
+            // 添加数值标签
+            const labels = g.selectAll('.label')
+                .data(distributionData)
+                .enter().append('text')
+                .attr('class', 'label')
+                .attr('x', d => xScale(d.phase) + xScale.bandwidth() / 2)
+                .attr('y', d => yScale(d.count) - 8)
+                .attr('text-anchor', 'middle')
+                .style('fill', '#f4f7fb')
+                .style('font-size', '14px')
+                .style('font-weight', '600')
+                .style('opacity', 0)
+                .text(d => d.count);
+            // 标签动画
+            labels.transition()
+                .duration(800)
+                .delay((d, i) => i * 120 + 600)
+                .style('opacity', 1);
+            // 添加百分比标签
+            const percentLabels = g.selectAll('.percent-label')
+                .data(distributionData)
+                .enter().append('text')
+                .attr('class', 'percent-label')
+                .attr('x', d => xScale(d.phase) + xScale.bandwidth() / 2)
+                .attr('y', d => yScale(d.count) - 25)
+                .attr('text-anchor', 'middle')
+                .style('fill', d => d.color)
+                .style('font-size', '12px')
+                .style('font-weight', '500')
+                .style('opacity', 0)
+                .text(d => `${d.percentage.toFixed(1)}%`);
+            // 百分比标签动画
+            percentLabels.transition()
+                .duration(800)
+                .delay((d, i) => i * 120 + 800)
+                .style('opacity', 0.8);
+            // 添加坐标轴标签
+            g.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', 0 - margin.left + 25)
+                .attr('x', 0 - (chartHeight / 2))
+                .attr('dy', '1em')
+                .style('text-anchor', 'middle')
+                .style('fill', '#7cc0ff')
+                .style('font-size', '16px')
+                .style('font-weight', '600')
+                .text('出现次数');
+            g.append('text')
+                .attr('transform', `translate(${chartWidth / 2}, ${chartHeight + margin.bottom - 20})`)
+                .style('text-anchor', 'middle')
+                .style('fill', '#7cc0ff')
+                .style('font-size', '16px')
+                .style('font-weight', '600')
+                .text('月相类型');
+            // 标题背景已移除
+            console.log('✅ 美化版月相分布统计图表创建完成');
+        }
+        // 创建照明度-距离关系图表
+        function createRelationshipChart() {
+            const chartContainer = document.getElementById('dynamic-chart');
+            // 获取容器的实际尺寸
+            const containerRect = chartContainer.getBoundingClientRect();
+            const width = Math.max(containerRect.width - 40, 800);
+            const height = Math.max(containerRect.height - 40, 500);
+            console.log('🎨 创建照明度-距离关系图表，尺寸:', { width, height });
+            // 清空容器
+            chartContainer.innerHTML = '';
+            // 创建SVG
+            const svg = d3.select(chartContainer)
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+            // 设置边距
+            const margin = { top: 40, right: 60, bottom: 80, left: 80 };
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+            // 创建主图组
+            const g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            // 获取当前时间段的数据
+            const currentDataPoint = moonData[currentIndex];
+            const currentMonth = currentDataPoint.date.getMonth();
+            const currentYear = currentDataPoint.date.getFullYear();
+            const dataStartDate = new Date(currentYear, currentMonth - 1, 16);
+            const dataEndDate = new Date(currentYear, currentMonth + 2, 15);
+            // 准备关系数据
+            const relationshipData = [];
+            for (let i = 0; i < moonData.length; i++) {
+                const dataPoint = moonData[i];
+                const dataDate = dataPoint.date;
+                if (dataDate >= dataStartDate && dataDate <= dataEndDate) {
+                    relationshipData.push({
+                        illumination: dataPoint.phase,
+                        distance: dataPoint.distance,
+                        phase: dataPoint.phase,
+                        age: dataPoint.age,
+                        date: dataDate,
+                        isCurrentMonth: dataDate.getMonth() === currentMonth
+                    });
+                }
+            }
+            console.log('📊 关系数据点数量:', relationshipData.length);
+            // 设置比例尺
+            const xScale = d3.scaleLinear()
+                .domain(d3.extent(relationshipData, d => d.illumination))
+                .nice()
+                .range([0, chartWidth]);
+            const yScale = d3.scaleLinear()
+                .domain(d3.extent(relationshipData, d => d.distance))
+                .nice()
+                .range([chartHeight, 0]);
+            // 添加背景
+            g.append('rect')
+                .attr('width', chartWidth)
+                .attr('height', chartHeight)
+                .attr('fill', 'rgba(255, 255, 255, 0.03)')
+                .attr('rx', 8);
+            // 添加网格线
+            g.append('g')
+                .attr('class', 'grid')
+                .attr('transform', `translate(0,${chartHeight})`)
+                .call(d3.axisBottom(xScale)
+                    .tickSize(-chartHeight)
+                    .tickFormat('')
+                )
+                .style('stroke-dasharray', '3,3')
+                .style('opacity', 0.2)
+                .style('stroke', 'white');
+            g.append('g')
+                .attr('class', 'grid')
+                .call(d3.axisLeft(yScale)
+                    .tickSize(-chartWidth)
+                    .tickFormat('')
+                )
+                .style('stroke-dasharray', '3,3')
+                .style('opacity', 0.2)
+                .style('stroke', 'white');
+            // 添加坐标轴
+            g.append('g')
+                .attr('transform', `translate(0,${chartHeight})`)
+                .call(d3.axisBottom(xScale))
+                .style('color', 'white')
+                .style('font-size', '12px');
+            g.append('g')
+                .call(d3.axisLeft(yScale))
+                .style('color', 'white')
+                .style('font-size', '12px');
+            // 添加散点
+            const dots = g.selectAll('.dot')
+                .data(relationshipData)
+                .enter().append('circle')
+                .attr('class', 'dot')
+                .attr('cx', d => xScale(d.illumination))
+                .attr('cy', d => yScale(d.distance))
+                .attr('r', 0)
+                .attr('fill', d => d.isCurrentMonth ? '#ff6b6b' : '#4fc3f7')
+                .attr('opacity', 0.8)
+                .on('mouseover', function(event, d) {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr('r', 6)
+                        .attr('opacity', 1);
+                    // 显示工具提示
+                    const tooltip = d3.select('body').append('div')
+                        .attr('class', 'chart-tooltip')
+                        .style('position', 'absolute')
+                        .style('background', 'rgba(0, 0, 0, 0.9)')
+                        .style('color', 'white')
+                        .style('padding', '12px')
+                        .style('border-radius', '6px')
+                        .style('font-size', '13px')
+                        .style('pointer-events', 'none')
+                        .style('z-index', 10000);
+                    tooltip.html(`
+                        <strong>${d.date.toLocaleDateString('zh-CN')}</strong><br/>
+                        照明度: ${d.illumination.toFixed(1)}%<br/>
+                        距离: ${d.distance.toLocaleString()} km<br/>
+                        月相: ${getPhaseName(d.phase, d.age)}
+                    `)
+                    .style('left', (event.pageX + 15) + 'px')
+                    .style('top', (event.pageY - 10) + 'px');
+                })
+                .on('mouseout', function() {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr('r', 4)
+                        .attr('opacity', 0.8);
+                    d3.selectAll('.chart-tooltip').remove();
+                });
+            // 散点动画
+            dots.transition()
+                .duration(800)
+                .delay((d, i) => i * 5)
+                .attr('r', 4);
+                    // 添加坐标轴标签
+            g.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', 0 - margin.left + 20)
+                .attr('x', 0 - (chartHeight / 2))
+                .attr('dy', '1em')
+                .style('text-anchor', 'middle')
+                .style('fill', 'white')
+                .style('font-size', '14px')
+                .text('地月距离 (km)');
+            g.append('text')
+                .attr('transform', `translate(${chartWidth / 2}, ${chartHeight + margin.bottom - 10})`)
+                .style('text-anchor', 'middle')
+                .style('fill', 'white')
+                .style('font-size', '14px')
+                .text('照明度 (%)');
+            // 添加标题
+            svg.append('text')
+                .attr('x', width / 2)
+                .attr('y', 25)
+                .attr('text-anchor', 'middle')
+                .style('fill', 'white')
+                .style('font-size', '18px')
+                .style('font-weight', 'bold')
+                .text('照明度-距离关系');
+            console.log('✅ 照明度-距离关系图表创建完成');
+        }
+        // 更新折线图
+        function updateLineChart() {
+            const chartSvg = d3.select('#dynamic-chart svg');
+            if (chartSvg.empty()) {
+                console.log('⚠️ 图表SVG不存在，重新创建');
+                createSimpleChart();
+                return;
+            }
+            const g = chartSvg.select('g');
+            const width = parseInt(chartSvg.attr('width'));
+            const height = parseInt(chartSvg.attr('height'));
+            // 重新计算比例尺
+            const margin = { top: 40, right: 60, bottom: 80, left: 80 };
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+            const xScale = d3.scaleTime()
+                .domain(d3.extent(chartData, d => d.date))
+                .range([0, chartWidth]);
+            const yScale = d3.scaleLinear()
+                .domain(d3.extent(chartData, d => d.value))
+                .nice()
+                .range([chartHeight, 0]);
+          }
+        // 更新分布图
+        function updateDistributionChart() {
+            // 分布图通常不需要实时更新，但可以更新高亮
+            const chartSvg = d3.select('#dynamic-chart svg');
+            if (!chartSvg.empty()) {
+                // 可以在这里添加动态更新逻辑，比如高亮当前月相等
+                console.log('📊 更新月相分布图表');
+            }
+        }
+        // 更新关系图
+        function updateRelationshipChart() {
+            const chartSvg = d3.select('#dynamic-chart svg');
+            if (chartSvg.empty()) {
+                console.log('⚠️ 关系图表SVG不存在，重新创建');
+                createRelationshipChart();
+                return;
+            }
+            const g = chartSvg.select('g');
+            const width = parseInt(chartSvg.attr('width'));
+            const height = parseInt(chartSvg.attr('height'));
+            // 重新计算比例尺
+            const margin = { top: 40, right: 60, bottom: 80, left: 80 };
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+            const currentDataPoint = moonData[currentIndex];
+            const xScale = d3.scaleLinear()
+                .domain(d3.extent(chartData, d => d.illumination))
+                .nice()
+                .range([0, chartWidth]);
+            const yScale = d3.scaleLinear()
+                .domain(d3.extent(chartData, d => d.distance))
+                .nice()
+                .range([chartHeight, 0]);
+            }
+        // 准备图表数据 - 跨月连续数据
+        function prepareChartData() {
+            chartData = [];
+            if (moonData.length === 0 || currentIndex >= moonData.length) return;
+            // 根据当前索引获取附近的数据点
+            const currentDataPoint = moonData[currentIndex];
+            const currentMonth = currentDataPoint.date.getMonth();
+            const currentYear = currentDataPoint.date.getFullYear();
+            // 定义数据范围：全年12个月
+            const dataStartDate = new Date(currentYear, 0, 1); // 1月1日
+            const dataEndDate = new Date(currentYear, 11, 31); // 12月31日
+            console.log('📊 全年数据范围:', {
+                startDate: dataStartDate.toLocaleDateString('zh-CN'),
+                endDate: dataEndDate.toLocaleDateString('zh-CN'),
+                currentMonth: currentMonth + 1,
+                currentYear: currentYear
+            });
+            // 收集指定范围内的所有数据
+            for (let i = 0; i < moonData.length; i++) {
+                const dataPoint = moonData[i];
+                const dataDate = dataPoint.date;
+                // 检查是否在数据范围内
+                if (dataDate >= dataStartDate && dataDate <= dataEndDate) {
+                    chartData.push({
+                        date: dataDate,
+                        value: getChartValue(dataPoint, currentChartType),
+                        phase: dataPoint.phase,
+                        age: dataPoint.age,
+                        distance: dataPoint.distance,
+                        diameter: dataPoint.diameter,
+                        isCurrentMonth: dataDate.getMonth() === currentMonth,
+                        monthDiff: dataDate.getMonth() - currentMonth,
+                        dataPointIndex: i,
+                        originalData: dataPoint // 添加原始数据引用，包含完整的天文信息
+                    });
+                }
+            }
+            console.log(`📊 准备了 ${chartData.length} 个数据点`);
+            console.log('📊 当前月数据点:', chartData.filter(d => d.isCurrentMonth).length);
+            console.log('📊 其他月数据点:', chartData.filter(d => !d.isCurrentMonth).length);
+            // 全年数据已准备，无需扩大范围
+        }
+        // 获取图表数值
+        function getChartValue(dataPoint, chartType) {
+            switch (chartType) {
+                case 'illumination':
+                    return dataPoint.phase;
+                case 'distance':
+                    return dataPoint.distance;
+                case 'diameter':
+                    return dataPoint.diameter;
+                default:
+                    return dataPoint.phase;
+            }
+        }
+        // 创建动态图表
+        function createDynamicChart() {
+            const container = document.getElementById('dynamic-chart');
+            // 获取计算后的样式和实际尺寸
+            const computedStyle = window.getComputedStyle(container);
+            const containerRect = container.getBoundingClientRect();
+            console.log('🔍 容器调试信息:');
+            console.log('- container.clientWidth:', container.clientWidth);
+            console.log('- containerRect.width:', containerRect.width);
+            console.log('- computedStyle.width:', computedStyle.width);
+            // 使用固定的安全尺寸
+            const width = 450; // 固定宽度，避免计算错误
+            const height = 350; // 固定高度
+            console.log('🔍 使用固定尺寸:', { width, height });
+            // 创建SVG
+            const svg = d3.select('#dynamic-chart')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+            // 设置边距
+            const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+            // 创建主图组
+            const g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            // 设置比例尺
+            const xScale = d3.scaleTime()
+                .domain(d3.extent(chartData, d => d.date))
+                .range([0, chartWidth]);
+            const yScale = d3.scaleLinear()
+                .domain(d3.extent(chartData, d => d.value))
+                .nice()
+                .range([chartHeight, 0]);
+            // 创建线条生成器
+            const line = d3.line()
+                .x(d => xScale(d.date))
+                .y(d => yScale(d.value))
+                .curve(d3.curveMonotoneX);
+            // 添加网格线
+            g.append('g')
+                .attr('class', 'grid')
+                .attr('transform', `translate(0,${chartHeight})`)
+                .call(d3.axisBottom(xScale)
+                    .tickSize(-chartHeight)
+                    .tickFormat('')
+                )
+                .style('stroke-dasharray', '3,3')
+                .style('opacity', 0.3);
+            g.append('g')
+                .attr('class', 'grid')
+                .call(d3.axisLeft(yScale)
+                    .tickSize(-chartWidth)
+                    .tickFormat('')
+                )
+                .style('stroke-dasharray', '3,3')
+                .style('opacity', 0.3);
+            // 添加坐标轴
+            g.append('g')
+                .attr('transform', `translate(0,${chartHeight})`)
+                .call(d3.axisBottom(xScale)
+                    .tickFormat(d3.timeFormat('%m/%d')))
+                .style('color', 'white');
+            g.append('g')
+                .call(d3.axisLeft(yScale))
+                .style('color', 'white');
+            // 添加月份分隔线
+            const monthBoundary = chartData.find(d => !d.isCurrentMonth);
+            if (monthBoundary) {
+                g.append('line')
+                    .attr('x1', xScale(monthBoundary.date))
+                    .attr('x2', xScale(monthBoundary.date))
+                    .attr('y1', 0)
+                    .attr('y2', chartHeight)
+                    .attr('stroke', 'rgba(255, 255, 255, 0.9)')
+                    .attr('stroke-dasharray', '5,5')
+                    .attr('stroke-width', 2);
+            }
+            // 创建线条路径
+            const path = g.append('path')
+                .datum(chartData)
+                .attr('fill', 'none')
+                .attr('stroke', '#ffffff')
+                .attr('stroke-width', 2)
+                .attr('d', line);
+            // 添加线条动画
+            const totalLength = path.node().getTotalLength();
+            path
+                .attr('stroke-dasharray', totalLength + ' ' + totalLength)
+                .attr('stroke-dashoffset', totalLength)
+                .transition()
+                .duration(1500)
+                .ease(d3.easeLinear)
+                .attr('stroke-dashoffset', 0);
+            // 添加数据点
+            const dots = g.selectAll('.dot')
+                .data(chartData)
+                .enter().append('circle')
+                .attr('class', 'dot')
+                .attr('cx', d => xScale(d.date))
+                .attr('cy', d => yScale(d.value))
+                .attr('r', 0)
+                .attr('fill', d => d.isCurrentMonth ? '#ff6b6b' : '#4fc3f7')
+                .on('mouseover', function(event, d) {
+                    // 显示工具提示
+                    const tooltip = d3.select('body').append('div')
+                        .attr('class', 'tooltip')
+                        .style('position', 'absolute')
+                        .style('background', 'rgba(0, 0, 0, 0.8)')
+                        .style('color', 'white')
+                        .style('padding', '8px')
+                        .style('border-radius', '4px')
+                        .style('font-size', '12px')
+                        .style('pointer-events', 'none')
+                        .style('z-index', 10000);
+                    tooltip.html(`
+                        <strong>${d.date.toLocaleDateString('zh-CN')}</strong><br/>
+                        ${getChartLabel(currentChartType)}: ${d.value.toFixed(2)}<br/>
+                        月相: ${getPhaseName(d.phase, d.age)}
+                    `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 10) + 'px');
+                })
+                .on('mouseout', function() {
+                    d3.selectAll('.tooltip').remove();
+                });
+            // 数据点动画
+            dots.transition()
+                .delay((d, i) => i * 20)
+                .duration(500)
+                .attr('r', 3);
+              }
+                  // 获取图表标题
+        function getChartTitle(chartType) {
+            const titles = {
+                'illumination': '月相照明度变化',
+                'distance': '地月距离变化',
+                'diameter': '视直径变化',
+                'distribution': '月相分布统计',
+                'relationship': '照明度-距离关系'
+            };
+            return titles[chartType] || '月相数据';
+        }
+        // 获取图表标签
+        function getChartLabel(chartType) {
+            const labels = {
+                'illumination': '照明度',
+                'distance': '距离',
+                'diameter': '视直径',
+                'distribution': '月相',
+                'relationship': '照明度'
+            };
+            return labels[chartType] || '数值';
+        }
+        // 获取图表数值单位
+        function getChartUnit(chartType) {
+            const units = {
+                'illumination': '%',
+                'distance': 'km',
+                'diameter': '角秒',
+                'distribution': '',
+                'relationship': 'km'
+            };
+            return units[chartType] || '';
+        }
+        // 获取图表坐标轴标签
+        function getChartAxisLabel(chartType) {
+            const labels = {
+                'illumination': '照明度 (%)',
+                'distance': '地月距离 (km)',
+                'diameter': '视直径 (arcsec)',
+                'distribution': '月相类型',
+                'relationship': '地月距离 (km)'
+            };
+            return labels[chartType] || '数值';
+        }
+        // 调试：测试函数是否正确工作
+        console.log('🔧 调试测试：');
+        console.log('1月2日测试 (月龄20.02天, 照明度69.83%)');
+        console.log('getPhaseName结果:', getPhaseName(69.83, 20.02));
+        console.log('getMoonImagePath结果:', getMoonImagePath(69.83, 20.02));
+        console.log('1月4日测试 (月龄22.02天, 照明度51.53%)');
+        console.log('getPhaseName结果:', getPhaseName(51.53, 22.02));
+        console.log('getMoonImagePath结果:', getMoonImagePath(51.53, 22.02));
+    </script>
+</body>
+</html>

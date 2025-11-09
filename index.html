@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>月相演变可视化</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="enhanced.css">
+    <link rel="stylesheet" href="moon-styles.css">
+</head>
+<body>
+    <!-- 紧凑的顶部控制栏 -->
+    <header class="compact-header">
+        <div class="compact-controls">
+            <div class="title-section">
+                <span class="moon-icon">🌙</span>
+                <h1>月相演变可视化</h1>
+            </div>
+
+            <div class="control-section">
+                <div class="date-controls">
+                    <select id="year-select" class="compact-select">
+                        <option value="2024">2024年</option>
+                        <option value="2025">2025年</option>
+                    </select>
+                    <select id="month-select" class="compact-select">
+                        <option value="0">一月</option>
+                        <option value="1">二月</option>
+                        <option value="2">三月</option>
+                        <option value="3">四月</option>
+                        <option value="4">五月</option>
+                        <option value="5">六月</option>
+                        <option value="6">七月</option>
+                        <option value="7">八月</option>
+                        <option value="8">九月</option>
+                        <option value="9">十月</option>
+                        <option value="10">十一月</option>
+                        <option value="11">十二月</option>
+                    </select>
+                </div>
+
+                <div class="view-controls">
+                    <button id="grid-view-btn" class="mini-btn active">网格</button>
+                    <a href="moon-animation-fixed.html" class="mini-btn" style="text-decoration: none; color: inherit; display: inline-block;">动画演示</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 - 左右两栏布局 -->
+    <main class="main-content">
+        <div class="content-layout">
+            <!-- 左侧：月相网格 -->
+            <section class="left-panel">
+                <div id="grid-view" class="view-container">
+                    <div class="section-header">
+                        <h2 id="grid-title">2024年一月 月相观测记录</h2>
+                    </div>
+                    <div class="moon-grid" id="moon-grid">
+                        <!-- 月相网格将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+
+                <div id="timeline-view" class="view-container hidden">
+                    <div class="section-header">
+                        <h2>月相演变时间线</h2>
+                    </div>
+                    <div class="timeline-container" id="timeline-container">
+                        <!-- 时间线视图将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右侧：数据可视化图表 -->
+            <section class="right-panel">
+                <div class="charts-header">
+                    <h2>数据分析</h2>
+                    <div class="chart-controls">
+                        <select id="parameter-select" class="parameter-select">
+                            <option value="illumination">月相照明度变化</option>
+                            <option value="distance">地月距离变化</option>
+                            <option value="diameter">视直径变化</option>
+                            <option value="distribution">月相分布统计</option>
+                            <option value="relationship">照明度-距离关系</option>
+                        </select>
+                        <select id="chart-type-select" class="chart-type-select">
+                            <option value="line">折线图</option>
+                            <option value="scatter">散点图</option>
+                            <option value="bar">柱状图</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 单张大图表容器 -->
+                <div class="main-chart-container">
+                    <div class="chart-title" id="chart-title">月相照明度变化</div>
+                    <div class="main-chart" id="main-chart"></div>
+                </div>
+
+                <!-- 参数介绍区域 -->
+                <div class="parameter-info">
+                    <div class="parameter-content" id="parameter-content">
+                        <div class="parameter-item" data-parameter="illumination">
+                            <h4>月相照明度变化</h4>
+                            <p>显示月亮表面被太阳照亮部分的比例变化。照明度从0%（新月）到100%（满月）周期性变化，反映了月相的完整周期。</p>
+                            <ul>
+                                <li><strong>新月：</strong>照明度0%，月亮完全不可见</li>
+                                <li><strong>上弦月：</strong>照明度50%，右半部分可见</li>
+                                <li><strong>满月：</strong>照明度100%，整个月面可见</li>
+                                <li><strong>下弦月：</strong>照明度50%，左半部分可见</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+              </section>
+        </div>
+    </main>
+
+    <!-- 悬浮信息面板 -->
+    <div id="hover-panel" class="hover-panel hidden">
+        <div class="hover-content">
+            <div class="hover-moon" id="hover-moon">
+                <!-- 月相圆形将通过JavaScript生成 -->
+            </div>
+            <div class="hover-info">
+                <h3 id="hover-phase-name">满月</h3>
+                <div class="hover-details">
+                    <p><span class="detail-label">日期：</span><span id="hover-date">2024-01-15</span></p>
+                    <p><span class="detail-label">照明度：</span><span id="hover-illumination">100%</span></p>
+                    <p><span class="detail-label">地月距离：</span><span id="hover-distance">384,400 km</span></p>
+                    <p><span class="detail-label">月相进度：</span><span id="hover-progress">50.0%</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载JavaScript -->
+    <script src="local-moon-phases.js"></script>
+    <script src="moon-visualization-final.js"></script>
+</body>
+</html>
