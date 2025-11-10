@@ -9,6 +9,12 @@
     let currentParameter = 'illumination'; // 当前参数
     let currentChartType = 'line'; // 当前图表类型
 
+    // 农历计算器
+    let lunarCalendar = null;
+
+    // 农历切换状态
+    let isLunarMode = false;
+
     // DOM元素
     const elements = {};
 
@@ -36,6 +42,14 @@
     async function init() {
         console.log('🌙 初始化月相可视化系统...');
 
+        // 初始化农历计算器
+        if (typeof LunarCalendar !== 'undefined') {
+            lunarCalendar = new LunarCalendar();
+            console.log('📅 农历计算器初始化完成');
+        } else {
+            console.warn('⚠️ 农历计算器未加载');
+        }
+
         // 获取DOM元素
         getElements();
 
@@ -57,6 +71,10 @@
         elements.moonGrid = document.getElementById('moon-grid');
         elements.gridTitle = document.getElementById('grid-title');
         elements.timelineContainer = document.getElementById('timeline-container');
+        elements.lunarToggle = document.getElementById('lunar-toggle');
+        elements.overviewMap = document.getElementById('overview-map');
+        elements.monthOverlay = document.getElementById('month-overlay');
+        elements.yearOverviewMap = document.getElementById('year-overview-map');
 
         // 主图表元素
         elements.mainChart = document.getElementById('main-chart');
@@ -94,6 +112,16 @@
         }
         if (elements.chartTypeSelect) {
             elements.chartTypeSelect.addEventListener('change', handleChartTypeChange);
+        }
+
+        // 农历切换事件
+        if (elements.lunarToggle) {
+            elements.lunarToggle.addEventListener('click', toggleLunarMode);
+        }
+
+        // 年度概览图月份选择事件
+        if (elements.yearOverviewMap) {
+            initOverviewMap();
         }
     }
 
@@ -535,6 +563,14 @@
             const style = document.createElement('style');
             style.id = styleId;
             style.textContent = `
+                .moon-phase-svg {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 40px;
+                }
+
                 .moon-phase-svg.loading {
                     position: relative;
                     display: flex;
@@ -587,6 +623,10 @@
                     width: 100%;
                     height: 100%;
                     border-radius: 50%;
+                    object-fit: cover;
+                    object-position: center center;
+                    display: block;
+                    margin: auto;
                 }
 
                 @keyframes moon-fadeIn {
@@ -1409,10 +1449,12 @@
         const hoverMoon = document.getElementById('hover-moon');
         const hoverPhaseName = document.getElementById('hover-phase-name');
         const hoverDate = document.getElementById('hover-date');
+        const hoverLunarDate = document.getElementById('hover-lunar-date');
         const hoverIllumination = document.getElementById('hover-illumination');
         const hoverDistance = document.getElementById('hover-distance');
         const hoverProgress = document.getElementById('hover-progress');
 
+        // 显示月相
         if (hoverMoon) {
             hoverMoon.innerHTML = createMoonPhaseSvg(dayData.illumination, dayData.phaseIndex, 80);
         }
@@ -1431,6 +1473,27 @@
         if (hoverProgress) {
             const progress = (dayData.day / monthData.length) * 100;
             hoverProgress.textContent = `${progress.toFixed(1)}%`;
+        }
+
+        // 显示农历信息
+        if (lunarCalendar && hoverLunarDate) {
+            // 传递moon age数据来提高农历计算准确性
+            const moonAge = dayData.moonAge || null;
+            const lunarInfo = lunarCalendar.solarToLunar(
+                dayData.date.getFullYear(),
+                dayData.date.getMonth() + 1,
+                dayData.day,
+                moonAge
+            );
+
+            let lunarText = lunarInfo.monthName + lunarInfo.dayName;
+            if (lunarInfo.isLeapMonth) {
+                lunarText = '闰' + lunarText;
+            }
+            hoverLunarDate.textContent = lunarText;
+        } else {
+            // 如果农历计算器未加载，显示默认值
+            if (hoverLunarDate) hoverLunarDate.textContent = '农历信息加载中...';
         }
 
         hoverPanel.classList.remove('hidden');
@@ -2344,6 +2407,236 @@
         if (elements.chartTypeSelect) {
             elements.chartTypeSelect.value = currentChartType;
         }
+    }
+
+    // 切换农历/阳历模式
+    function toggleLunarMode() {
+        isLunarMode = !isLunarMode;
+
+        // 更新按钮状态和样式
+        if (elements.lunarToggle) {
+            if (isLunarMode) {
+                elements.lunarToggle.classList.add('active');
+                elements.lunarToggle.textContent = '阳历'; // 当前显示农历，点击后切换到阳历
+            } else {
+                elements.lunarToggle.classList.remove('active');
+                elements.lunarToggle.textContent = '农历'; // 当前显示阳历，点击后切换到农历
+            }
+        }
+
+        // 更新月相格子中的日期显示
+        updateDayDisplay();
+    }
+
+    // 更新日期显示
+    function updateDayDisplay() {
+        if (!elements.moonGrid) return;
+
+        const moonCards = elements.moonGrid.querySelectorAll('.moon-card');
+        moonCards.forEach((card, index) => {
+            const dayElement = card.querySelector('.moon-day');
+            if (dayElement) {
+                const dayNumber = index + 1;
+
+                if (isLunarMode) {
+                    // 显示农历日期
+                    const lunarInfo = getLunarDateForDay(dayNumber);
+                    dayElement.textContent = lunarInfo;
+                    dayElement.style.color = '#94a3b8'; // 农历日期用灰色，与阳历一致
+                } else {
+                    // 显示阳历日期
+                    dayElement.textContent = `${dayNumber}日`;
+                    dayElement.style.color = '#94a3b8'; // 阳历日期用灰色
+                }
+            }
+        });
+    }
+
+    // 获取指定日期的农历信息
+    function getLunarDateForDay(day) {
+        if (!lunarCalendar || !monthData || monthData.length === 0) {
+            return '未知';
+        }
+
+        const dayData = monthData[day - 1];
+        if (!dayData || !dayData.date) {
+            return '未知';
+        }
+
+        try {
+            // 使用moon age数据提高准确性
+            const moonAge = dayData.moonAge || null;
+            const lunarInfo = lunarCalendar.solarToLunar(
+                dayData.date.getFullYear(),
+                dayData.date.getMonth() + 1,
+                dayData.day,
+                moonAge
+            );
+
+            // 返回简化的农历日期格式
+            let lunarText = lunarInfo.monthName.replace('正月', '正月')
+                                .replace('二月', '二月')
+                                .replace('三月', '三月')
+                                .replace('四月', '四月')
+                                .replace('五月', '五月')
+                                .replace('六月', '六月')
+                                .replace('七月', '七月')
+                                .replace('八月', '八月')
+                                .replace('九月', '九月')
+                                .replace('十月', '十月')
+                                .replace('冬月', '冬月')
+                                .replace('腊月', '腊月');
+
+            // 添加闰月标识
+            if (lunarInfo.isLeapMonth) {
+                lunarText = '闰' + lunarText;
+            }
+
+            // 添加日期
+            lunarText += lunarInfo.dayName.replace('初一', '初')
+                                   .replace('初二', '初二')
+                                   .replace('初三', '初三')
+                                   .replace('初四', '初四')
+                                   .replace('初五', '初五')
+                                   .replace('初六', '初六')
+                                   .replace('初七', '初七')
+                                   .replace('初八', '初八')
+                                   .replace('初九', '初九')
+                                   .replace('初十', '初十')
+                                   .replace('十一', '十一')
+                                   .replace('十二', '十二')
+                                   .replace('十三', '十三')
+                                   .replace('十四', '十四')
+                                   .replace('十五', '十五')
+                                   .replace('十六', '十六')
+                                   .replace('十七', '十七')
+                                   .replace('十八', '十八')
+                                   .replace('十九', '十九')
+                                   .replace('二十', '二十')
+                                   .replace('廿一', '廿一')
+                                   .replace('廿二', '廿二')
+                                   .replace('廿三', '廿三')
+                                   .replace('廿四', '廿四')
+                                   .replace('廿五', '廿五')
+                                   .replace('廿六', '廿六')
+                                   .replace('廿七', '廿七')
+                                   .replace('廿八', '廿八')
+                                   .replace('廿九', '廿九')
+                                   .replace('三十', '三十');
+
+            // 简化长名称
+            if (lunarText.length > 8) {
+                lunarText = lunarText.substring(0, 6) + '..';
+            }
+
+            return lunarText;
+        } catch (error) {
+            console.warn('农历日期计算失败:', error);
+            return '未知';
+        }
+    }
+
+    // 初始化年度概览图
+    function initOverviewMap() {
+        if (!elements.yearOverviewMap) return;
+
+        const areas = elements.yearOverviewMap.querySelectorAll('area');
+
+        // 为每个月份区域添加点击事件
+        areas.forEach(area => {
+            const month = parseInt(area.getAttribute('data-month'));
+
+            area.addEventListener('click', function() {
+                selectMonth(month);
+            });
+
+            // 添加鼠标悬停效果
+            area.addEventListener('mouseenter', function() {
+                showMonthTooltip(this, month);
+            });
+
+            area.addEventListener('mouseleave', function() {
+                hideMonthTooltip();
+            });
+        });
+
+        // 设置当前月份的高亮
+        updateMonthHighlight();
+    }
+
+    // 选择月份
+    async function selectMonth(month) {
+        if (month >= 0 && month <= 11) {
+            currentMonth = month;
+
+            // 更新下拉框（如果存在）
+            if (elements.monthSelect) {
+                elements.monthSelect.value = month;
+            }
+
+            // 重新加载数据
+            await loadData();
+
+            // 更新高亮显示
+            updateMonthHighlight();
+
+            console.log(`📅 切换到${month + 1}月`);
+        }
+    }
+
+    // 更新月份高亮显示
+    function updateMonthHighlight() {
+        if (!elements.monthOverlay) return;
+
+        // 清除所有高亮
+        elements.monthOverlay.innerHTML = '';
+
+        // 创建月份覆盖块
+        const monthWidth = 29; // 适应350px宽度的月份块
+        const monthHeight = 32; // 概览图高度
+
+        for (let i = 0; i < 12; i++) {
+            const rect = document.createElement('div');
+            rect.className = i === currentMonth ? 'area-rect active' : 'area-rect';
+            rect.style.left = `${i * monthWidth + 3}px`;
+            rect.style.top = '2px';
+            rect.style.width = `${monthWidth - 6}px`;
+            rect.style.height = `${monthHeight - 4}px`;
+            rect.setAttribute('data-month', i);
+            rect.style.display = 'flex';
+            rect.style.alignItems = 'center';
+            rect.style.justifyContent = 'center';
+            rect.style.fontSize = '9px';
+            rect.style.color = '#e0f2fe';
+            rect.style.fontWeight = '600';
+            rect.style.borderRadius = '3px';
+            rect.style.pointerEvents = 'auto';
+            rect.style.zIndex = '10';
+            rect.style.lineHeight = '1';
+            rect.textContent = (i + 1);
+
+            // 添加点击事件
+            rect.addEventListener('click', function() {
+                selectMonth(i);
+            });
+
+            elements.monthOverlay.appendChild(rect);
+        }
+    }
+
+    // 显示月份提示
+    function showMonthTooltip(area, month) {
+        const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月',
+                          '七月', '八月', '九月', '十月', '十一月', '十二月'];
+
+        // 这里可以添加提示框显示功能
+        // 由于布局限制，暂时用控制台输出
+        console.log(`悬停: ${monthNames[month]}`);
+    }
+
+    // 隐藏月份提示
+    function hideMonthTooltip() {
+        // 隐藏提示框
     }
 
     // 页面加载完成后初始化（支持异步加载）

@@ -14,7 +14,7 @@ body {
     background: rgba(30, 41, 59, 0.8);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-    padding: 8px 16px;
+    padding: 10px 24px;
     position: sticky;
     top: 0;
     z-index: 100;
@@ -50,6 +50,88 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+/* 年度概览图样式 */
+.overview-container {
+    background: rgba(30, 41, 59, 0.4);
+    border-radius: 6px;
+    padding: 1px;
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    backdrop-filter: blur(8px);
+    flex-shrink: 0;
+}
+
+.overview-title {
+    font-size: 10px;
+    color: #93c5fd;
+    text-align: center;
+    margin-bottom: 2px;
+    font-weight: 500;
+}
+
+.overview-map {
+    position: relative;
+    width: 350px;
+    height: 32px;
+    overflow: hidden;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.overview-map img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.month-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    border-radius: 8px;
+}
+
+.month-overlay .month-highlight {
+    position: absolute;
+    background: rgba(251, 191, 36, 0.3);
+    border: 2px solid rgba(251, 191, 36, 0.6);
+    border-radius: 4px;
+    pointer-events: auto;
+    transition: all 0.3s ease;
+}
+
+.month-overlay .month-highlight:hover {
+    background: rgba(251, 191, 36, 0.4);
+    border-color: rgba(251, 191, 36, 0.8);
+    transform: scale(1.05);
+}
+
+.area-rect {
+    position: absolute;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(2px);
+}
+
+.area-rect:hover {
+    background: rgba(59, 130, 246, 0.25);
+    border-color: rgba(59, 130, 246, 0.5);
+    transform: scale(1.1);
+}
+
+.area-rect.active {
+    background: rgba(251, 191, 36, 0.4);
+    border: 2px solid rgba(251, 191, 36, 0.7);
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+    z-index: 20;
 }
 
 .date-controls {
@@ -113,24 +195,29 @@ body {
 .main-content {
     padding: 8px 4px;
     flex: 1;
-    height: calc(100vh - 40px);
+    height: calc(100vh - 35px);
     overflow: hidden;
 }
 
 .content-wrapper {
     max-width: 1200px;
     margin: 0 auto;
+    height: calc(100vh - 35px);
+    display: flex;
+    gap: 16px;
 }
 
 .view-container {
     background: rgba(30, 41, 59, 0.5);
     backdrop-filter: blur(10px);
     border-radius: 12px;
-    padding: 12px;
+    padding: 8px;
     border: 1px solid rgba(59, 130, 246, 0.2);
     margin-bottom: 12px;
-    height: calc(100vh - 80px);
+    height: calc(100vh - 50px);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .view-container.hidden {
@@ -138,28 +225,62 @@ body {
 }
 
 .section-header {
-    text-align: center;
-    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+    padding: 0 4px;
 }
 
 .section-header h2 {
     margin: 0;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     color: #93c5fd;
+    flex: 1;
+    text-align: center;
+}
+
+.lunar-toggle-btn {
+    padding: 6px 12px;
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    border-radius: 6px;
+    color: #60a5fa;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.lunar-toggle-btn:hover {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.6);
+    transform: translateY(-1px);
+}
+
+.lunar-toggle-btn.active {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.6);
+    color: #60a5fa;
 }
 
 /* ==================== 网格视图 ==================== */
 .moon-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 16px;
+    gap: 12px;
+    flex: 1;
+    overflow: hidden;
+    align-content: start;
 }
 
 .moon-card {
     background: rgba(51, 65, 85, 0.5);
-    border-radius: 16px;
-    padding: 16px;
+    border-radius: 12px;
+    padding: 10px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -175,21 +296,24 @@ body {
 }
 
 .moon-day {
-    font-size: 12px;
+    font-size: 11px;
     color: #94a3b8;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-weight: 500;
 }
 
 .moon-phase-svg {
-    margin: 8px 0;
+    margin: 4px 0;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .moon-phase-name {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     color: #60a5fa;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
 }
 
 .moon-illumination {
@@ -397,6 +521,12 @@ body {
     font-weight: 500;
 }
 
+/* 农历日期特殊样式 */
+#hover-lunar-date {
+    color: #fbbf24;
+    font-weight: 600;
+}
+
 /* ==================== 动画效果 ==================== */
 @keyframes fadeIn {
     from {
@@ -414,6 +544,21 @@ body {
 }
 
 /* ==================== 响应式设计 ==================== */
+
+@media (max-width: 1024px) {
+    .overview-container {
+        max-width: 250px;
+    }
+
+    .overview-map {
+        width: 250px;
+        height: 60px;
+    }
+
+    .area-rect {
+        width: 50px !important;
+    }
+}
 @media (max-width: 1024px) {
     .moon-grid {
         grid-template-columns: repeat(5, 1fr);
@@ -511,7 +656,7 @@ body {
     width: 100%;
     display: flex;
     gap: 16px;
-    height: calc(100vh - 40px);
+    height: calc(100vh - 35px);
     padding: 0 8px;
 }
 
@@ -519,6 +664,7 @@ body {
     flex: 1.5;
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
 .right-panel {
@@ -527,6 +673,7 @@ body {
     flex-direction: column;
     gap: 8px;
     overflow: hidden;
+    height: 100%;
 }
 
 .charts-header {
@@ -647,6 +794,9 @@ body {
 
 .moon-phase-svg {
     margin: 4px 0;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .moon-phase-name {
